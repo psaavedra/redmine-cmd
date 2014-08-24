@@ -364,12 +364,13 @@ def get_time_entries(user_id=None):
         logger.error("Exception: %s" % e)
     print output
     return options, default
-    
+
 def get_activities():
     global conffile
     output = ""
     options = []
     default = None
+    print '''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "activities"
     cfg = ConfigParser.ConfigParser()
     cfg.read(conffile)
     try:
@@ -392,6 +393,7 @@ def get_trackers():
     output = ""
     options = []
     default = None
+    print '''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "trackers"
     cfg = ConfigParser.ConfigParser()
     cfg.read(conffile)
     try:
@@ -681,7 +683,7 @@ if __name__ == '__main__':
     except Exception:
       pass
     console = Console()
-    console.prompt = "\033[33;01mTracker\033[31;01m$\033[0;0m "
+    console.prompt = "\033[33;01mTracker\033[31;01m>\033[0;0m "
     thread = TimeThread(console)
     thread.start()
     console.cmdloop()
