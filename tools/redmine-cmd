@@ -641,6 +641,34 @@ datetime.datetime.fromtimestamp(LAST_TIME).isoformat(' ')
         End the program"""
         exit()
 
+    def do_create(self, line):
+        """createtask
+        Create a new ticket"""
+        create_task()
+
+    def do_set(self, issue_id):
+        """settask
+        Select a task as working on it """
+        set_task(issue_id)
+
+    def do_up(self, comment):
+        """updatetask [comment]
+        Update task"""
+        update_task(comment)
+
+    def do_end(self, comment):
+        """endtask [comment]
+        End task"""
+        end_task(comment)
+
+    def do_close(self, comment):
+        """closetask [comment]
+        Close task"""
+        close_task()
+
+
+
+
 
 # command line options parser ##################################################
 parser = OptionParser()
