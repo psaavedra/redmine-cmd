@@ -12,6 +12,9 @@ Development=9
 Documentation=10
 Testing=11
 Revision=12
+CallConference=13
+Support=14
+Maintenance=15
 Default=9
 
 [trackers]
