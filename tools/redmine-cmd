@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding:utf-8 -*-
 #
 # Maintainer: Pablo Saavedra
@@ -8,17 +8,28 @@ import os
 import sys
 import signal
 
-reload(sys)
-sys.setdefaultencoding('utf-8')
+try:
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+except Exception:
+    pass
+
+try:
+  try:
+    import ConfigParser
+  except ImportError:
+    import confiparser.ConfigParser
+except Exception:
+    pass
+
 
 import cmd
 import threading
 import time
 import datetime
-import ConfigParser
+
 import simplejson as json
 from httplib2 import Http
-from urllib import urlencode
 from optparse import OptionParser
 
 
@@ -69,9 +80,9 @@ def setup():
                 else:
                     globals()[o] = value
                 logger.debug("Setting %s to %s" % (o,value))
-            except Exception, e:
+            except Exception as e:
                 logger.error("Error parsing %s - %s: %s" % ("global",o,e))
-    except Exception, e:
+    except Exception as e:
         logger.error("Raised exception: %s" % e)
 
 
@@ -109,7 +120,7 @@ def change_issue_status(issue_id,status,comment):
     URL="%s/issues/%s.json%s" % (baseurl,issue_id,params)
     json_doc=json.dumps(json_doc)
     resp,content = get_response("PUT", URL, json_doc)
-    print "Response: %s" % resp["status"]
+    print ("Response: %s" % resp["status"])
 
 def create_issue(p_id,t_id,u_id,subject,description):
     global baseurl
@@ -133,7 +144,7 @@ def create_issue(p_id,t_id,u_id,subject,description):
     createIssueURL="%s/issues.json%s" % (baseurl,params)
     json_doc=json.dumps(json_doc)
     resp,content = get_response("POST", createIssueURL, json_doc)
-    print "Response: %s" % resp["status"]
+    print ("Response: %s" % resp["status"])
     try:
         return json.loads(content)["issue"]
     except  Exception:
@@ -157,7 +168,7 @@ def create_time_entry(issue_id,activity_id,hours,comments):
     URL="%s/time_entries.xml%s" % (baseurl,params)
     json_doc=json.dumps(json_doc)
     resp,content = get_response("POST", URL, json_doc)
-    print "Response: %s" % resp["status"]
+    print ("Response: %s" % resp["status"])
 
 
 def update_issue(issue_id, comment, note):
@@ -175,8 +186,8 @@ def update_issue(issue_id, comment, note):
     URL="%s/issues/%s.json%s" % (baseurl,issue_id,params)
     json_doc=json.dumps(json_doc)
     resp,content = get_response("PUT", URL, json_doc)
-    print "Response: %s" % resp["status"]
-    print content
+    print ("Response: %s" % resp["status"])
+    print (content)
     try:
         return json.loads(content)["issue"]
     except  Exception:
@@ -186,7 +197,8 @@ def update_issue(issue_id, comment, note):
 def get_input(option_name, multiline=False):
     global sentinel
     if multiline:
-        print "\033[35;01mEnter %s (type %s to end):\033[0;0m" % (option_name,sentinel)
+        print ("\033[35;01mEnter %s (type %s to end):\033[0;0m" \
+                % (option_name,sentinel))
         res = '\n'.join(iter(raw_input, sentinel))
     else:
         res = raw_input('\033[35;01mEnter %s: \033[0;0m' % option_name)
@@ -204,7 +216,7 @@ def get_current_user():
     resp, content = get_response("GET", getURL)
     try:
         res = json.loads(content)
-    except Exception, e:
+    except Exception as e:
         logger.error("Exception: %s" % e)
     return res
 
@@ -216,7 +228,7 @@ def get_object(objects_name,id_,object_key_id, object_key_name):
 
     res_object = {}
     output = ""
-    print '''\033[33;01mGetting %s:\033[31;01m>\033[0;0m''' % objects_name
+    print ('''\033[33;01mGetting %s:\033[31;01m>\033[0;0m''' % objects_name)
     params="?key=%s" % (key)
     getURL="%s/%s/%s.json%s" % (baseurl,objects_name,id_,params)
     resp, content = get_response("GET", getURL)
@@ -224,10 +236,10 @@ def get_object(objects_name,id_,object_key_id, object_key_name):
         res_object = json.loads(content)
         o = res_object[objects_name[:-1]]
         output =  o[object_key_name] + ": " + str(o[object_key_id])
-    except Exception, e:
+    except Exception as e:
         logger.error("Exception: %s" % e)
 
-    print output
+    print (output)
     return res_object
 
 def get_objects(objects_name,object_key_id, object_key_name):
@@ -235,11 +247,13 @@ def get_objects(objects_name,object_key_id, object_key_name):
     global key
     global headers
     global CURRENT_TICKET
+    global CURRENT_USER
     limit = 50
     offset = 0
     options=[]
     default = None
-    print '''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % objects_name
+    print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' \
+            % objects_name)
     output = ""
     while True:
         params="?key=%s&offset=%s&limit=%s" % (key,offset,limit)
@@ -251,12 +265,12 @@ def get_objects(objects_name,object_key_id, object_key_name):
               for o in received[objects_name]:
                 output += "; " + o[object_key_name] + ": " + str(o[object_key_id])
                 options.append(int(o[object_key_id]))
-            except Exception, e:
+            except Exception as e:
               logger.error("Exception: %s" % e)
             offset+=limit
             if len(received[objects_name])<limit:
                 break # no more items to iter
-        except Exception, e:
+        except Exception as e:
             logger.error("Exception: %s" % e)
             break
     try:
@@ -268,12 +282,19 @@ def get_objects(objects_name,object_key_id, object_key_name):
 % (CURRENT_TICKET[current_ticket_related_key]["name"], CURRENT_TICKET[current_ticket_related_key]["id"])
             options.append(CURRENT_TICKET[current_ticket_related_key]["id"])
             default = CURRENT_TICKET[current_ticket_related_key]["id"]
-    except Exception, e:
+        else:
+            if objects_name[:-1] == "user":
+                output += "; Default - %s: %s" \
+% (CURRENT_USER["firstname"], CURRENT_USER["id"])
+                options.append(CURRENT_USER["id"])
+                default = CURRENT_USER["id"]
+
+    except Exception as e:
         logger.error("Unexpected error: %s" % e)
     try:
-      print output[2:]
+      print (output[2:])
     except Exception:
-      print output
+      print (output)
     return options, default
 
 def get_projects():
@@ -290,7 +311,8 @@ def get_issues(assigned_to_id="me", status="open"):
     limit = 50
     offset = 0
     default = None
-    print '''\033[33;01mIssues %s assigned to %s:\033[31;01m>\033[0;0m''' % (status,assigned_to_id)
+    print ('''\033[33;01mIssues %s assigned to %s:\033[31;01m>\033[0;0m''' \
+            % (status,assigned_to_id))
     output = ""
     while True:
         params="?key=%s&offset=%s&limit=%s&status_id=%s&assigned_to_id=%s" % \
@@ -299,18 +321,18 @@ def get_issues(assigned_to_id="me", status="open"):
         resp, content = get_response("GET", getURL)
         try:
             received = json.loads(content)
-            # print received
+            # print (received)
             try:
               for p in received["issues"]:
                 output += str(p["id"]) + ": " + str(p["project"]["name"]) + " -> " + str(p["subject"]) + "\n"
                 options.append(int(p["id"]))
-            except Exception, e:
+            except Exception as e:
               logger.error("Exception: %s" % e)
               pass
             offset+=limit
             if len(received["issues"])<limit:
                 break # no more items to iter
-        except Exception, e:
+        except Exception as e:
             logger.error("Exception: %s" % e)
             break
     try:
@@ -319,9 +341,9 @@ def get_issues(assigned_to_id="me", status="open"):
 % (CURRENT_TICKET["id"], CURRENT_TICKET["subject"] ,CURRENT_TICKET["project"]["name"])
             options.append(CURRENT_TICKET["id"])
             default = CURRENT_TICKET["id"]
-    except Exception, e:
+    except Exception as e:
         logger.error("Unexpected error: %s" % e)
-    print output
+    print (output)
     return options, default
 
 def get_myissues():
@@ -335,7 +357,7 @@ def get_time_entries(user_id=None):
     limit = 100
     offset = 0
     default = None
-    print '''\033[33;01mTime entries logged:\033[31;01m>\033[0;0m'''
+    print ('''\033[33;01mTime entries logged:\033[31;01m>\033[0;0m''')
     output = ""
     params="?key=%s&offset=%s&limit=%s" % \
         (key,offset,limit)
@@ -354,11 +376,11 @@ def get_time_entries(user_id=None):
                   + " - " + str(p["hours"]) \
                   + " - " + str(p["comments"]) + "\n"
                 options.append(int(p["id"]))
-        except Exception, e:
+        except Exception as e:
           logger.error("Exception: %s" % e)
-    except Exception, e:
+    except Exception as e:
         logger.error("Exception: %s" % e)
-    print output
+    print (output)
     return options, default
 
 def get_activities(quiet=False):
@@ -367,7 +389,8 @@ def get_activities(quiet=False):
     options = []
     default = None
     if not quiet:
-        print '''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "activities"
+        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' \
+                % "activities")
     cfg = ConfigParser.ConfigParser()
     cfg.read(conffile)
     try:
@@ -378,12 +401,12 @@ def get_activities(quiet=False):
                 options.append(int(value))
                 if o.lower() == "default":
                     default = int(value)
-            except Exception, e:
+            except Exception as e:
                 logger.error("Error parsing %s - %s: %s" % ("activities",o,e))
-    except Exception, e:
+    except Exception as e:
         logger.error("Raised exception: %s" % e)
     if not quiet:
-        print output
+        print (output)
     return options, default
 
 def get_issue_status(quiet=False):
@@ -392,7 +415,8 @@ def get_issue_status(quiet=False):
     options = []
     default = None
     if not quiet:
-        print '''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "issue status"
+        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' \
+                % "issue status")
     cfg = ConfigParser.ConfigParser()
     cfg.read(conffile)
     try:
@@ -403,12 +427,12 @@ def get_issue_status(quiet=False):
                 options.append(int(value))
                 if o.lower() == "default":
                     default = int(value)
-            except Exception, e:
+            except Exception as e:
                 logger.error("Error parsing %s - %s: %s" % ("activities",o,e))
-    except Exception, e:
+    except Exception as e:
         logger.error("Raised exception: %s" % e)
     if not quiet:
-        print output
+        print (output)
     return options, default
 
 
@@ -417,7 +441,7 @@ def get_trackers():
     output = ""
     options = []
     default = None
-    print '''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "trackers"
+    print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "trackers")
     cfg = ConfigParser.ConfigParser()
     cfg.read(conffile)
     try:
@@ -428,17 +452,17 @@ def get_trackers():
                 options.append(int(value))
                 if o.lower() == "default":
                     default = int(value)
-            except Exception, e:
+            except Exception as e:
                 logger.error("Error parsing %s - %s: %s" % ("trackers",o,e))
-    except Exception, e:
+    except Exception as e:
         logger.error("Raised exception: %s" % e)
-    print output
+    print (output)
     return options, default
 
 def select_option(option_name, get_options):
     option = None
     options,default = get_options()
-    # print options
+    # print (options)
     options.append(-1)
     while option not in options:
         try:
@@ -447,7 +471,7 @@ def select_option(option_name, get_options):
           option = default
     if option == -1:
         raise CancelException()
-    print "Selected %s: %s" % (option_name,option)
+    print ("Selected %s: %s" % (option_name,option))
     return option
 
 
@@ -457,7 +481,7 @@ def change_task_status(comment):
     global LAST_TIME
     try:
       if CURRENT_TICKET == {}:
-        print "No ticket to be modified"
+        print ("No ticket to be modified")
         pass
       else:
         status = select_option("issue", get_issue_status)
@@ -473,18 +497,22 @@ def change_task_status(comment):
         change_issue_status(issue_id, status, comment)
         LAST_TIME = now
         CURRENT_TICKET = {}
-    except CancelException, e:
-        print "Action cancelled"
-    except Exception, e:
+    except CancelException as e:
+        print ("Action cancelled")
+    except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
 def create_task():
     global CURRENT_TICKET
+    global CURRENT_USER
     global LAST_TIME
     try:
       p_id = select_option("project", get_projects)
       # t_id = select_option("tracker", get_trackers)
-      u_id = select_option("user", get_users)
+      try:
+        u_id = select_option("user", get_users)
+      except Exception:
+        u_id = int(CURRENT_USER["id"])
       subject = get_input("subject")
       description = get_input("description",multiline=True)
       new_ticket = create_issue(p_id,"9",u_id,subject,description)
@@ -492,9 +520,9 @@ def create_task():
         now = time.time()
         LAST_TIME = now
         CURRENT_TICKET = new_ticket
-    except CancelException, e:
-        print "Action cancelled"
-    except Exception, e:
+    except CancelException as e:
+        print ("Action cancelled")
+    except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
 def end_task(comment):
@@ -507,18 +535,18 @@ def end_task(comment):
         if comment.strip() == "":
           comment = get_input("comment")
         now = time.time()
-        # print "Ending task - comment: %s"  % comment
-        print '''\033[35;01mEnding task %s - comment %s\033[0;0m''' \
-          % (CURRENT_TICKET["id"], comment)
+        # print ("Ending task - comment: %s"  % comment)
+        print ('''\033[35;01mEnding task %s - comment %s\033[0;0m''' \
+          % (CURRENT_TICKET["id"], comment))
         _,activity_id = get_activities(quiet=True)
         issue_id = CURRENT_TICKET["id"]
         hours = (now - LAST_TIME) / 3600.0
         create_time_entry(issue_id,activity_id,hours,comment)
         LAST_TIME = now
         CURRENT_TICKET = {}
-    except CancelException, e:
-        print "Action cancelled"
-    except Exception, e:
+    except CancelException as e:
+        print ("Action cancelled")
+    except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
 def set_task(issue_id):
@@ -526,16 +554,16 @@ def set_task(issue_id):
     global LAST_TIME
     try:
         if issue_id.strip() == "":
-          print "No issue number entered"
+          print ("No issue number entered")
           issue_id = select_option("issue", get_myissues)
         res = get_object("issues",issue_id,"id", "subject")
         if res != {}:
           end_task("Change of activity")
           CURRENT_TICKET = res["issue"]
           LAST_TIME = time.time()
-    except CancelException, e:
-        print "Action cancelled"
-    except Exception, e:
+    except CancelException as e:
+        print ("Action cancelled")
+    except Exception as e:
         logged.error("Unexpected exception: %s" % e)
 
 def update_task(comment):
@@ -543,7 +571,7 @@ def update_task(comment):
     global LAST_TIME
     try:
       if CURRENT_TICKET == {}:
-        print "No ticket to be updated"
+        print ("No ticket to be updated")
       else:
         now = time.time()
         if comment.strip() == "":
@@ -555,9 +583,9 @@ def update_task(comment):
         hours = (now - LAST_TIME) / 3600.0
         create_time_entry(issue_id,activity_id,hours,comment)
         LAST_TIME = now
-    except CancelException, e:
-        print "Action cancelled"
-    except Exception, e:
+    except CancelException as e:
+        print ("Action cancelled")
+    except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
 
@@ -595,8 +623,8 @@ class Console(cmd.Cmd):
         """viewcurrenttask
         View information about the current task"""
         global CURRENT_TICKET
-        print json.dumps(CURRENT_TICKET, sort_keys=True,
-            indent=4, separators=(',', ': '))
+        print (json.dumps(CURRENT_TICKET, sort_keys=True,
+            indent=4, separators=(',', ': ')))
 
     def do_viewtasks(self, args_line):
         """viewtasks
@@ -623,7 +651,10 @@ class Console(cmd.Cmd):
     def do_viewusers(self, line):
         """viewusers
         View users"""
-        get_users()
+        try:
+            get_users()
+        except Exception:
+            print ("No privileges")
 
     def do_settask(self, issue_id):
         """settask
@@ -637,18 +668,18 @@ class Console(cmd.Cmd):
         global CURRENT_USER
         global CURRENT_TICKET
         global threshold
-        print "Baseurl: " + str(baseurl)
-        print "Key: ..." + str(key)[-5:]
-        print "Threshold: %s seconds" % threshold
-        print "User info: " + json.dumps(CURRENT_USER, sort_keys=True,
-            indent=4, separators=(',', ': '))
+        print ("Baseurl: " + str(baseurl))
+        print ("Key: ..." + str(key)[-5:])
+        print ("Threshold: %s seconds" % threshold)
+        print ("User info: " + json.dumps(CURRENT_USER, sort_keys=True,
+            indent=4, separators=(',', ': ')))
         now = time.time()
         if CURRENT_TICKET != {}:
-          print "Current ticket Id: %s" % CURRENT_TICKET["id"]
-          print "Current ticket Subject: %s" % CURRENT_TICKET["subject"]
-        print "Last update: %s" %\
-datetime.datetime.fromtimestamp(LAST_TIME).isoformat(' ')
-        print "Auto end: %s seconds" % ((LAST_TIME + threshold) - now)
+          print ("Current ticket Id: %s" % CURRENT_TICKET["id"])
+          print ("Current ticket Subject: %s" % CURRENT_TICKET["subject"])
+        print ("Last update: %s" %\
+datetime.datetime.fromtimestamp(LAST_TIME).isoformat(' '))
+        print ("Auto end: %s seconds" % ((LAST_TIME + threshold) - now))
     
     def do_updatetask(self, comment):
         """updatetask [comment]
@@ -668,7 +699,7 @@ datetime.datetime.fromtimestamp(LAST_TIME).isoformat(' ')
     def do_exit(self, line):
         """exit
         End the program"""
-        print "Ending!. Sending kill to threads..."
+        print ("Ending!. Sending kill to threads...")
         exit()
      
     def do_EOF(self, line):
@@ -748,7 +779,7 @@ logger.debug("Default encoding: %s" % sys.getdefaultencoding())
 setup()
 
 def signal_int_handler(signal, frame):
-    print "Ctrl-c received! Sending kill to threads..."
+    print ("Ctrl-c received! Sending kill to threads...")
     exit()
 signal.signal(signal.SIGINT, signal_int_handler)
 
