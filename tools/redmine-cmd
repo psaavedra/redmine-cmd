@@ -365,12 +365,13 @@ def get_time_entries(user_id=None):
     print output
     return options, default
 
-def get_activities():
+def get_activities(quiet=True):
     global conffile
     output = ""
     options = []
     default = None
-    print '''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "activities"
+    if not quiet:
+        print '''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "activities"
     cfg = ConfigParser.ConfigParser()
     cfg.read(conffile)
     try:
@@ -385,7 +386,8 @@ def get_activities():
                 logger.error("Error parsing %s - %s: %s" % ("activities",o,e))
     except Exception, e:
         logger.error("Raised exception: %s" % e)
-    print output
+    if not quiet:
+        print output
     return options, default
 
 def get_trackers():
@@ -474,9 +476,13 @@ def end_task(comment):
       if CURRENT_TICKET == {}:
         pass
       else:
-        print "Ending task: %s"  % comment
+        if comment.strip() == "":
+          comment = get_input("comment")
         now = time.time()
-        _,activity_id = get_activities()
+        # print "Ending task - comment: %s"  % comment
+        print '''\033[35;01mEnding task %s - comment %s\033[0;0m''' \
+          % (CURRENT_TICKET["id"], comment)
+        _,activity_id = get_activities(quiet=True)
         issue_id = CURRENT_TICKET["id"]
         hours = (now - LAST_TIME) / 3600.0
         create_time_entry(issue_id,activity_id,hours,comment)
@@ -547,6 +553,7 @@ class TimeThread(threading.Thread):
               now = time.time()
               if now > LAST_TIME + threshold and CURRENT_TICKET:
                   end_task("Auto end")
+          end_task("Auto end")
 
 class Console(cmd.Cmd):
     """Tracker command processor."""
