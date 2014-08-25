@@ -177,7 +177,11 @@ def update_issue(issue_id, comment, note):
     global key
     global headers
     global logger
-    notes = "Comment: <pre>%s</pre> %s" % (comment,note)
+    notes = ""
+    if comment.strip() == "":
+        notes = "Notes:\n%s" % (note)
+    else:
+        notes = "Comment: _%s_\n\nNotes:\n%s" % (comment,note)
     json_doc={
       "issue": {
         "notes": notes,
