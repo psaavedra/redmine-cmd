@@ -581,7 +581,7 @@ class TimeThread(threading.Thread):
               now = time.time()
               if now > LAST_TIME + threshold and CURRENT_TICKET:
                   end_task("Auto end")
-          end_task("Auto end")
+          end_task("Auto end. Application closed")
 
 class Console(cmd.Cmd):
     """Tracker command processor."""
