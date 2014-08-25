@@ -44,6 +44,7 @@ console = None
 LAST_TIME=time.time()
 CURRENT_TICKET = {}
 CURRENT_USER={}
+PREVIOUS_TICKET={}
 
 sentinel=".end."
 threshold=30*60
@@ -478,6 +479,7 @@ def select_option(option_name, get_options):
 ################################################################################
 def change_task_status(comment):
     global CURRENT_TICKET
+    global PREVIOUS_TICKET
     global LAST_TIME
     try:
       if CURRENT_TICKET == {}:
@@ -496,6 +498,7 @@ def change_task_status(comment):
         create_time_entry(issue_id,activity_id,hours,comment)
         change_issue_status(issue_id, status, comment)
         LAST_TIME = now
+        PREVIOUS_TICKET = CURRENT_TICKET
         CURRENT_TICKET = {}
     except CancelException as e:
         print ("Action cancelled")
@@ -505,6 +508,7 @@ def change_task_status(comment):
 def create_task():
     global CURRENT_TICKET
     global CURRENT_USER
+    global PREVIOUS_TICKET
     global LAST_TIME
     try:
       p_id = select_option("project", get_projects)
@@ -519,6 +523,7 @@ def create_task():
       if new_ticket:
         now = time.time()
         LAST_TIME = now
+        PREVIOUS_TICKET = CURRENT_TICKET
         CURRENT_TICKET = new_ticket
     except CancelException as e:
         print ("Action cancelled")
@@ -527,6 +532,7 @@ def create_task():
 
 def end_task(comment):
     global CURRENT_TICKET
+    global PREVIOUS_TICKET
     global LAST_TIME
     try:
       if CURRENT_TICKET == {}:
@@ -543,6 +549,7 @@ def end_task(comment):
         hours = (now - LAST_TIME) / 3600.0
         create_time_entry(issue_id,activity_id,hours,comment)
         LAST_TIME = now
+        PREVIOUS_TICKET = CURRENT_TICKET
         CURRENT_TICKET = {}
     except CancelException as e:
         print ("Action cancelled")
@@ -551,6 +558,7 @@ def end_task(comment):
 
 def set_task(issue_id):
     global CURRENT_TICKET
+    global PREVIOUS_TICKET
     global LAST_TIME
     try:
         if issue_id.strip() == "":
@@ -558,6 +566,7 @@ def set_task(issue_id):
           issue_id = select_option("issue", get_myissues)
         res = get_object("issues",issue_id,"id", "subject")
         if res != {}:
+          PREVIOUS_TICKET = CURRENT_TICKET
           end_task("Change of activity")
           CURRENT_TICKET = res["issue"]
           LAST_TIME = time.time()
@@ -565,6 +574,26 @@ def set_task(issue_id):
         print ("Action cancelled")
     except Exception as e:
         logged.error("Unexpected exception: %s" % e)
+
+
+def previous_task():
+    global CURRENT_TICKET
+    global PREVIOUS_TICKET
+    global LAST_TIME
+    try:
+      if not PREVIOUS_TICKET=={} and not CURRENT_TICKET=={}:
+          tmp_previous = PREVIOUS_TICKET
+          tmp_current = CURRENT_TICKET
+          end_task("Change of activity")
+          CURRENT_TICKET = tmp_previous
+          PREVIOUS_TICKET = tmp_current
+          LAST_TIME = time.time()
+          print ("Selected task is %s now" % CURRENT_TICKET["id"])
+      else:
+        print ("No previous ticket")
+    except Exception as e:
+        logged.error("Unexpected exception: %s" % e)
+
 
 def update_task(comment):
     global CURRENT_TICKET
@@ -667,6 +696,7 @@ class Console(cmd.Cmd):
         global LAST_TIME
         global CURRENT_USER
         global CURRENT_TICKET
+        global PREVIOUS_TICKET
         global threshold
         print ("Baseurl: " + str(baseurl))
         print ("Key: ..." + str(key)[-5:])
@@ -677,6 +707,9 @@ class Console(cmd.Cmd):
         if CURRENT_TICKET != {}:
           print ("Current ticket Id: %s" % CURRENT_TICKET["id"])
           print ("Current ticket Subject: %s" % CURRENT_TICKET["subject"])
+        if PREVIOUS_TICKET != {}:
+          print ("Previous ticket Id: %s" % PREVIOUS_TICKET["id"])
+          print ("Previous ticket Subject: %s" % PREVIOUS_TICKET["subject"])
         print ("Last update: %s" %\
 datetime.datetime.fromtimestamp(LAST_TIME).isoformat(' '))
         print ("Auto end: %s seconds" % ((LAST_TIME + threshold) - now))
@@ -690,7 +723,12 @@ datetime.datetime.fromtimestamp(LAST_TIME).isoformat(' '))
         """endtask [comment]
         End task"""
         end_task(comment)
-    
+
+    def do_previoustask(self, line):
+        """previoustask
+        Select the previous task as working on it """
+        previous_task()
+
     def do_changetaskstatus(self, comment):
         """changetaskstatus [comment]
         Change status of the task"""
@@ -717,9 +755,15 @@ datetime.datetime.fromtimestamp(LAST_TIME).isoformat(' '))
         Select a task as working on it """
         set_task(issue_id)
 
+    def do_prev(self, line):
+        """previoustask
+        Select the previous task as working on it """
+        previous_task()
+
+
     def do_tasks(self, args_line):
         """viewtasks
-        View tasks [user - default:me] [status - default: open]"""
+        View tasks [user - default:me] [status - default: open|closed]"""
         args = args_line.split()
         try:
             user = args[0]
