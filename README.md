@@ -29,9 +29,11 @@ Usage of the interactive shell
 
 Available commands::
 
-  create     endtask     set      up       viewtasks
-  close      createtask  exit     settask  updatetask       viewtimes
-  closetask  end         help     status   viewcurrenttask  viewusers
+                    createtask  help     tasks            viewtasks
+  change            end         set      up               viewtimes
+  changetaskstatus  endtask     settask  updatetask       viewusers
+  create            exit        status   viewcurrenttask
+
 
 
 Configuration file
