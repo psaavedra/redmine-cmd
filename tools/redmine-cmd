@@ -172,11 +172,18 @@ def create_time_entry(issue_id,activity_id,hours,comments):
     print ("Response: %s" % resp["status"])
 
 
-def update_issue(issue_id, comment, note):
+def update_issue(issue_id, comment, note, done_ratio=0):
     global baseurl
     global key
     global headers
     global logger
+
+    try:
+        done_ratio = int(done_ratio)
+        done_ratio = 100 if done_ratio > 100 else done_ratio
+        done_ratio = 0 if done_ratio < 0 else done_ratio
+    except Exception:
+        done_ratio = 0
     notes = ""
     if comment.strip() == "":
         notes = "Notes:\n%s" % (note)
@@ -185,6 +192,7 @@ def update_issue(issue_id, comment, note):
     json_doc={
       "issue": {
         "notes": notes,
+        "done_ratio": done_ratio,
       }
     }
     params="?key=%s" % (key)
@@ -610,9 +618,10 @@ def update_task(comment):
         if comment.strip() == "":
             comment = get_input("comment")
         note = get_input("note",multiline=True)
+        done_ratio = get_input("(%) done")
         activity_id = select_option("activity", get_activities)
         issue_id = CURRENT_TICKET["id"]
-        update_issue(issue_id, comment, note)
+        update_issue(issue_id, comment, note,done_ratio)
         hours = (now - LAST_TIME) / 3600.0
         create_time_entry(issue_id,activity_id,hours,comment)
         LAST_TIME = now
