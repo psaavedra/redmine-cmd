@@ -183,7 +183,7 @@ def update_issue(issue_id, comment, note, done_ratio=0):
         done_ratio = 100 if done_ratio > 100 else done_ratio
         done_ratio = 0 if done_ratio < 0 else done_ratio
     except Exception:
-        done_ratio = 0
+        done_ratio = None
     notes = ""
     if comment.strip() == "":
         notes = "Notes:\n%s" % (note)
@@ -192,9 +192,11 @@ def update_issue(issue_id, comment, note, done_ratio=0):
     json_doc={
       "issue": {
         "notes": notes,
-        "done_ratio": done_ratio,
       }
     }
+    if done_ratio:
+        json_doc["issue"]["done_ratio"] = done_ratio
+
     params="?key=%s" % (key)
     URL="%s/issues/%s.json%s" % (baseurl,issue_id,params)
     json_doc=json.dumps(json_doc)
