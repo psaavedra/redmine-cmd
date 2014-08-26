@@ -14,6 +14,8 @@ rejected=6
 delayed=7
 in_review=8
 waiting=9
+replied=10
+pending_close=11
 Default=1
 
 [activities]
@@ -29,7 +31,9 @@ VerificationAndValidation=16
 Debug=17
 ChangeManagement=18
 ProjectManagement=19
-Default=9
+TeamManagement=20
+Installations=22
+Default=20
 
 [trackers]
 Feature=2
