@@ -42,6 +42,7 @@ loglevel = 20
 console = None
 
 LAST_TIME=time.time()
+LAST_ACTIVITY=None
 CURRENT_TICKET = {}
 CURRENT_USER={}
 PREVIOUS_TICKET={}
@@ -153,10 +154,12 @@ def create_issue(p_id,t_id,u_id,subject,description):
 
 
 def create_time_entry(issue_id,activity_id,hours,comments):
+    global LAST_ACTIVITY
     global baseurl
     global key
     global headers
     global logger
+    LAST_ACTIVITY=activity_id
     json_doc={
       "time_entry": {
         "issue_id": issue_id,
@@ -184,11 +187,13 @@ def update_issue(issue_id, comment, note, done_ratio=0):
         done_ratio = 0 if done_ratio < 0 else done_ratio
     except Exception:
         done_ratio = None
-    notes = ""
-    if comment.strip() == "":
-        notes = "Notes:\n%s" % (note)
-    else:
-        notes = "Comment: _%s_\n\nNotes:\n%s" % (comment,note)
+
+    if comment.strip() != "":
+        comment = "Comment: _%s_\n\n" % (comment)
+    if note.strip() != "":
+        note = "Notes:\n%s" % (note)
+    notes = "%s%s" % (comment,note)
+
     json_doc={
       "issue": {
         "notes": notes,
@@ -400,9 +405,10 @@ def get_time_entries(user_id=None):
 
 def get_activities(quiet=False):
     global conffile
+    global LAST_ACTIVITY
     output = ""
     options = []
-    default = None
+    default = LAST_ACTIVITY
     if not quiet:
         print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' \
                 % "activities")
@@ -412,10 +418,12 @@ def get_activities(quiet=False):
         for o in cfg.options("activities"):
             try:
                 value = cfg.get("activities",o)
-                output += o + ": " + value + "\n"
-                options.append(int(value))
                 if o.lower() == "default":
-                    default = int(value)
+                    if not default:
+                        default = int(value)
+                    value = default
+                output += "%s: %s\n" % (o,value)
+                options.append(int(value))
             except Exception as e:
                 logger.error("Error parsing %s - %s: %s" % ("activities",o,e))
     except Exception as e:
