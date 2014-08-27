@@ -343,8 +343,24 @@ def get_issues(assigned_to_id="me", status="open"):
             received = json.loads(content)
             # print (received)
             try:
+              output = output \
++ "#id" \
++ "\tprior" \
++ "\tupdated_on"\
++ "\tdue_date"\
++ "\tproject"\
++ "\tsubject\n"
+
               for p in received["issues"]:
-                output += str(p["id"]) + ": " + str(p["project"]["name"]) + " -> " + str(p["subject"]) + "\n"
+                p["updated_on"] = p["updated_on"] if p.has_key("updated_on") else "NO DATE"
+                p["due_date"] = p["due_date"] if p.has_key("due_date") else "NO DATE   "
+                output = output \
++ str(p["id"]) \
++ "\t" + str(p["priority"]["name"]) \
++ "\t" + str(p["updated_on"])\
++ "\t" + str(p["due_date"])\
++ "\t" + str(p["project"]["name"])\
++ "\t" + str(p["subject"]) + "\n"
                 options.append(int(p["id"]))
             except Exception as e:
               logger.error("Exception: %s" % e)
