@@ -335,7 +335,7 @@ def get_issues(assigned_to_id="me", status="open"):
             % (status,assigned_to_id))
     output = ""
     while True:
-        params="?key=%s&offset=%s&limit=%s&status_id=%s&assigned_to_id=%s" % \
+        params="?key=%s&offset=%s&limit=%s&status_id=%s&assigned_to_id=%s&sort=priority:desc,update_on:desc" % \
             (key,offset,limit,status,assigned_to_id)
         getURL="%s/issues.json%s" % (baseurl,params)
         resp, content = get_response("GET", getURL)
