@@ -346,6 +346,7 @@ def get_issues(assigned_to_id="me", status="open"):
               output = output \
 + "#id" \
 + "\tprior" \
++ "\tstatus   " \
 + "\tupdated_on         "\
 + "\tdue_date"\
 + "\tproject "\
@@ -357,6 +358,7 @@ def get_issues(assigned_to_id="me", status="open"):
                 output = output \
 + str(p["id"]) \
 + "\t" + str(p["priority"]["name"]) \
++ "\t" + str(p["status"]["name"]) \
 + "\t" + str(p["updated_on"])\
 + "\t" + str(p["due_date"])\
 + "\t" + str(p["project"]["name"])\
