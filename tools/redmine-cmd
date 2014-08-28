@@ -201,17 +201,19 @@ def update_issue(issue_id, comment, note, done_ratio=0):
     }
     if done_ratio:
         json_doc["issue"]["done_ratio"] = done_ratio
-
-    params="?key=%s" % (key)
-    URL="%s/issues/%s.json%s" % (baseurl,issue_id,params)
-    json_doc=json.dumps(json_doc)
-    resp,content = get_response("PUT", URL, json_doc)
-    print ("Response: %s" % resp["status"])
-    print (content)
     try:
+      params="?key=%s" % (key)
+      URL="%s/issues/%s.json%s" % (baseurl,issue_id,params)
+      json_doc=json.dumps(json_doc)
+      resp,content = get_response("PUT", URL, json_doc)
+      print ("Response: %s" % resp["status"])
+      print (content)
+      try:
         return json.loads(content)["issue"]
-    except  Exception:
+      except  Exception:
         return None
+    except  Exception:
+      return None
 
 
 def get_input(option_name, multiline=False):
@@ -334,7 +336,8 @@ def get_issues(assigned_to_id="me", status="open"):
     print ('''\033[33;01mIssues %s assigned to %s:\033[31;01m>\033[0;0m''' \
             % (status,assigned_to_id))
     output = ""
-    while True:
+    try:
+      while True:
         params="?key=%s&offset=%s&limit=%s&status_id=%s&assigned_to_id=%s&sort=priority:desc,update_on:desc" % \
             (key,offset,limit,status,assigned_to_id)
         getURL="%s/issues.json%s" % (baseurl,params)
@@ -371,12 +374,14 @@ def get_issues(assigned_to_id="me", status="open"):
         except Exception as e:
             logger.error("Exception: %s" % e)
             break
-    try:
+      try:
         if CURRENT_TICKET and not( CURRENT_TICKET == {}):
             output += "Current - %s: %s %s" \
 % (CURRENT_TICKET["id"], CURRENT_TICKET["subject"] ,CURRENT_TICKET["project"]["name"])
             options.append(CURRENT_TICKET["id"])
             default = CURRENT_TICKET["id"]
+      except Exception as e:
+        logger.error("Error getting the current ticket: %s" % e)
     except Exception as e:
         logger.error("Unexpected error: %s" % e)
     print (output)
