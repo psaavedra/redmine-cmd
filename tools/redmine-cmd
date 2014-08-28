@@ -346,14 +346,14 @@ def get_issues(assigned_to_id="me", status="open"):
               output = output \
 + "#id" \
 + "\tprior" \
-+ "\tupdated_on"\
++ "\tupdated_on         "\
 + "\tdue_date"\
-+ "\tproject"\
++ "\tproject "\
 + "\tsubject\n"
 
               for p in received["issues"]:
-                p["updated_on"] = p["updated_on"] if p.has_key("updated_on") else "NO DATE"
-                p["due_date"] = p["due_date"] if p.has_key("due_date") else "NO DATE   "
+                p["updated_on"] = p["updated_on"].split("+")[0].strip() if p.has_key("updated_on") else "NO DATE"
+                p["due_date"] = p["due_date"].split("+")[0].strip() if p.has_key("due_date") else "NO DATE   "
                 output = output \
 + str(p["id"]) \
 + "\t" + str(p["priority"]["name"]) \
