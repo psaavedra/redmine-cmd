@@ -656,7 +656,8 @@ def update_task(comment):
         if comment.strip() == "":
             comment = get_input("comment")
         note = get_input("note",multiline=True)
-        done_ratio = get_input("(%) done")
+        done_ratio = get_input("done ratio (current: {0}%)"\
+                .format(CURRENT_TICKET["done_ratio"]))
         activity_id = select_option("activity", get_activities)
         issue_id = CURRENT_TICKET["id"]
         update_issue(issue_id, comment, note,done_ratio)
