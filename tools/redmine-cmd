@@ -415,7 +415,6 @@ p["subject"]
         logger.error("Error getting the current ticket: %s" % e)
     except Exception as e:
         logger.error("Unexpected error: %s" % e)
-    print output
     outputt.add_rows(output)
     print outputt.draw() + "\n"
     return options, default
