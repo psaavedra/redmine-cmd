@@ -27,6 +27,7 @@ import cmd
 import threading
 import time
 import datetime
+import texttable as tt
 
 import simplejson as json
 from httplib2 import Http
@@ -333,7 +334,11 @@ def get_issues(assigned_to_id="me", status="open"):
     default = None
     print ('''\033[33;01mIssues %s assigned to %s:\033[31;01m>\033[0;0m''' \
             % (status,assigned_to_id))
-    output = ""
+    output = []
+    outputt = tt.Texttable()
+    outputt.set_deco(tt.Texttable.HEADER)
+    outputt.set_cols_width([5,6,6,10,10,8,27])
+
     while True:
         params="?key=%s&offset=%s&limit=%s&status_id=%s&assigned_to_id=%s&sort=priority:desc,updated_on:desc" % \
             (key,offset,limit,status,assigned_to_id)
@@ -343,26 +348,30 @@ def get_issues(assigned_to_id="me", status="open"):
             received = json.loads(content)
             # print (received)
             try:
-              output = output \
-+ "#id" \
-+ "\tprior" \
-+ "\tstatus   " \
-+ "\tupdated_on         "\
-+ "\tdue_date"\
-+ "\tproject "\
-+ "\tsubject\n"
+              outputt.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
+              outputt.set_cols_valign(["t", "t", "t", "t", "t", "t", "t"])
+              output.append( [
+"#id",
+"prior",
+"status",
+"updated_on",
+"due_date",
+"project",
+"subject"
+])
 
               for p in received["issues"]:
                 p["updated_on"] = p["updated_on"].split("+")[0].strip() if p.has_key("updated_on") else "NO DATE"
                 p["due_date"] = p["due_date"].split("+")[0].strip() if p.has_key("due_date") else "NO DATE   "
-                output = output \
-+ str(p["id"]) \
-+ "\t" + str(p["priority"]["name"]) \
-+ "\t" + str(p["status"]["name"]) \
-+ "\t" + str(p["updated_on"])\
-+ "\t" + str(p["due_date"])\
-+ "\t" + str(p["project"]["name"])\
-+ "\t" + str(p["subject"]) + "\n"
+                output.append( [\
+p["id"],
+p["priority"]["name"],
+p["status"]["name"],
+p["updated_on"],
+p["due_date"],
+p["project"]["name"],
+p["subject"]
+])
                 options.append(int(p["id"]))
             except Exception as e:
               logger.error("Exception: %s" % e)
@@ -381,7 +390,8 @@ def get_issues(assigned_to_id="me", status="open"):
             default = CURRENT_TICKET["id"]
     except Exception as e:
         logger.error("Unexpected error: %s" % e)
-    print (output)
+    outputt.add_rows(output)
+    print outputt.draw() + "\n"
     return options, default
 
 def get_myissues():

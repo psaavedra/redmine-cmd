@@ -32,6 +32,7 @@ setup(
     install_requires=[
         "httplib2",
         "simplejson",
+        "texttable",
     ],
     data_files=[
         ('/usr/share/doc/redmine-cmd/', ['cfg/redmine_cmd.cfg.example']),
