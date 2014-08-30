@@ -100,6 +100,7 @@ def setup():
     try:
         f = open(session_file,'r')
         SESSION=json.load(f)
+        SESSION["LAST_TIME"]=time.time()
         logger.info('Saved session loaded')
         f.close()
     except Exception as e:
