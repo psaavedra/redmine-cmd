@@ -677,7 +677,10 @@ def update_task(comment):
         hours = (now - SESSION["LAST_TIME"]) / 3600.0
         create_time_entry(issue_id,activity_id,hours,comment)
         SESSION["LAST_TIME"] = now
-        SESSION["CURRENT_TICKET"]["done_ratio"] = done_ratio
+        try:
+          SESSION["CURRENT_TICKET"]["done_ratio"] = int(done_ratio)
+        except Exception:
+          pass
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
