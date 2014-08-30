@@ -107,6 +107,12 @@ def setup():
         logger.warning(\
 "Session file {0} can not be opened: {1}".format(session_file,e))
 
+def validate_date(date_text):
+    try:
+        datetime.datetime.strptime(date_text, '%Y/%m/%d')
+    except ValueError:
+        raise ValueError("Incorrect data format, should be YYYY/MM/DD")
+
 def get_http_requester():
     try:
         h = Http(disable_ssl_certificate_validation=True, timeout=20)
@@ -143,26 +149,17 @@ def change_issue_status(issue_id,status,comment):
     resp,content = get_response("PUT", URL, json_doc)
     print ("Response: %s" % resp["status"])
 
-def create_issue(p_id,t_id,u_id,subject,description):
+
+def create_issue(issue_dict):
     global baseurl
     global key
     global headers
     global SESSION
     global logger
 
-    json_doc={
-      "issue": {
-        "description": description,
-        "subject": subject,
-        "project_id": p_id,
-        "tracker_id": t_id,
-        # "assigned_to_id": SESSION["CURRENT_USER"]["id"],
-        "assigned_to_id": u_id,
-      }
-    }
     params="?key=%s" % (key)
     createIssueURL="%s/issues.json%s" % (baseurl,params)
-    json_doc=json.dumps(json_doc)
+    json_doc=json.dumps(issue_dict)
     resp,content = get_response("POST", createIssueURL, json_doc)
     print ("Response: %s" % resp["status"])
     try:
@@ -193,7 +190,8 @@ def create_time_entry(issue_id,activity_id,hours,comments):
     print ("Response: %s" % resp["status"])
 
 
-def update_issue(issue_id, comment, note, done_ratio=0):
+def update_issue(issue_id, comment, note,
+        done_ratio,due_date,estimated_hours):
     global baseurl
     global key
     global headers
@@ -217,6 +215,10 @@ def update_issue(issue_id, comment, note, done_ratio=0):
         "notes": notes,
       }
     }
+    if estimated_hours:
+        json_doc["issue"]["estimated_hours"] = estimated_hours
+    if due_date:
+        json_doc["issue"]["due_date"] = due_date
     if done_ratio:
         json_doc["issue"]["done_ratio"] = done_ratio
     try:
@@ -590,7 +592,29 @@ def create_task():
         u_id = int(SESSION["CURRENT_USER"]["id"])
       subject = get_input("subject")
       description = get_input("description",multiline=True)
-      new_ticket = create_issue(p_id,"9",u_id,subject,description)
+      try:
+          estimated_hours = get_input("estimated hours")
+          estimated_hours = long(estimated_hours)
+      except Exception:
+          estimated_hours = ""
+      try:
+          due_date = get_input("due date (YYYY/mm/dd)")
+          validate_date(due_date)
+      except Exception:
+          due_date = ""
+
+      issue_dict={
+      "issue": {
+        "description": description,
+        "subject": subject,
+        "project_id": p_id,
+        "tracker_id": "9",
+        "assigned_to_id": u_id,
+        "estimated_hours": estimated_hours,
+        "due_date": due_date
+      }
+      }
+      new_ticket = create_issue(issue_dict)
       if new_ticket:
         now = time.time()
         SESSION["LAST_TIME"] = now
@@ -672,9 +696,31 @@ def update_task(comment):
         note = get_input("note",multiline=True)
         done_ratio = get_input("done ratio (current: {0}%)"\
                 .format(SESSION["CURRENT_TICKET"]["done_ratio"]))
+        try:
+          estimated_hours = SESSION["CURRENT_TICKET"]["estimated_hours"]
+        except Exception:
+          estimated_hours = ""
+        try:
+          estimated_hours = get_input("estimated hours (current: {0})"\
+                .format(estimated_hours))
+          estimated_hours = long(estimated_hours)
+        except Exception:
+          estimated_hours = ""
+        try:
+          due_date = SESSION["CURRENT_TICKET"]["due_date"]
+        except Exception:
+          due_date = ""
+        try:
+          due_date = get_input("due date (YYYY/mm/dd; current: {0})"\
+                .format(due_date))
+          validate_date(due_date)
+        except Exception:
+          due_date = ""
+
         activity_id = select_option("activity", get_activities)
         issue_id = SESSION["CURRENT_TICKET"]["id"]
-        update_issue(issue_id, comment, note,done_ratio)
+        update_issue(issue_id, comment,
+                note,done_ratio,due_date,estimated_hours)
         hours = (now - SESSION["LAST_TIME"]) / 3600.0
         create_time_entry(issue_id,activity_id,hours,comment)
         SESSION["LAST_TIME"] = now
@@ -682,6 +728,16 @@ def update_task(comment):
           SESSION["CURRENT_TICKET"]["done_ratio"] = int(done_ratio)
         except Exception:
           pass
+        try:
+          SESSION["CURRENT_TICKET"]["estimated_hours"] = int(estimated_hours)
+        except Exception:
+          pass
+        try:
+          validate_date(due_date)
+          SESSION["CURRENT_TICKET"]["due_date"] = due_date
+        except Exception:
+          pass
+
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
