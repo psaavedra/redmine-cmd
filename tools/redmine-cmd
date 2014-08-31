@@ -109,9 +109,26 @@ def setup():
 
 def validate_date(date_text):
     try:
+        if date_text == "today":
+          return
         datetime.datetime.strptime(date_text, '%Y/%m/%d')
     except ValueError:
-        raise ValueError("Incorrect data format, should be YYYY/MM/DD")
+        raise ValueError("Incorrect data format, should be YYYY/MM/DD or today")
+
+def get_from_ticket(ticket,attribute):
+    t = ticket
+    if ticket and ticket.has_key("issue"):
+        t=ticket["issue"]
+    try:
+        res = t[attribute]
+    except Exception:
+        res = ""
+    return res
+
+def get_from_current_ticket(attribute):
+    global SESSION
+    c_ticket = SESSION["CURRENT_TICKET"]
+    return get_from_ticket(c_ticket,attribute)
 
 def get_http_requester():
     try:
@@ -215,11 +232,11 @@ def update_issue(issue_id, comment, note,
         "notes": notes,
       }
     }
-    if estimated_hours:
+    if estimated_hours and estimated_hours != "":
         json_doc["issue"]["estimated_hours"] = estimated_hours
-    if due_date:
+    if due_date and due_date != "":
         json_doc["issue"]["due_date"] = due_date
-    if done_ratio:
+    if done_ratio and done_ratio != "":
         json_doc["issue"]["done_ratio"] = done_ratio
     try:
       params="?key=%s" % (key)
@@ -236,7 +253,7 @@ def update_issue(issue_id, comment, note,
       return None
 
 
-def get_input(option_name, multiline=False):
+def get_input(option_name, multiline=False, default=None, validator=None):
     global sentinel
     if multiline:
         print ("\033[35;01mEnter %s (type %s to end):\033[0;0m" \
@@ -244,6 +261,13 @@ def get_input(option_name, multiline=False):
         res = '\n'.join(iter(raw_input, sentinel))
     else:
         res = raw_input('\033[35;01mEnter %s: \033[0;0m' % option_name)
+    if validator:
+        try:
+            validator(res)
+        except Exception:
+            res = ""
+    if default and res.strip() == "":
+        return default
     return res
 
 
@@ -564,9 +588,8 @@ def change_task_status(comment):
       else:
         status = select_option("issue", get_issue_status)
         if comment.strip() == "":
-          comment = get_input("comment")
-        if comment.strip() == "":
-          comment = "Task status updated"
+          comment = get_input("comment",
+                      default="Task status updated")
         now = time.time()
         _,activity_id = get_activities()
         issue_id = SESSION["CURRENT_TICKET"]["id"]
@@ -592,16 +615,12 @@ def create_task():
         u_id = int(SESSION["CURRENT_USER"]["id"])
       subject = get_input("subject")
       description = get_input("description",multiline=True)
-      try:
-          estimated_hours = get_input("estimated hours")
-          estimated_hours = long(estimated_hours)
-      except Exception:
-          estimated_hours = ""
-      try:
-          due_date = get_input("due date (YYYY/mm/dd)")
-          validate_date(due_date)
-      except Exception:
-          due_date = ""
+      estimated_hours = get_input("estimated hours",validator=long)
+      due_date = get_input(\
+"due date (YYYY/mm/dd or today)",validator=validate_date)
+      if due_date == "today":
+          n = datetime.datetime.now()
+          due_date = "{0}/{1}/{2}".format(n.year,n.month,n.day)
 
       issue_dict={
       "issue": {
@@ -610,10 +629,13 @@ def create_task():
         "project_id": p_id,
         "tracker_id": "9",
         "assigned_to_id": u_id,
-        "estimated_hours": estimated_hours,
-        "due_date": due_date
       }
       }
+      if estimated_hours != "":
+          issue_dict["issue"]["estimated_hours"]=estimated_hours
+      if due_date != "":
+          issue_dict["issue"]["due_date"]=due_date
+
       new_ticket = create_issue(issue_dict)
       if new_ticket:
         now = time.time()
@@ -686,57 +708,44 @@ def previous_task():
 
 def update_task(comment):
     global SESSION
+    c_ticket=SESSION["CURRENT_TICKET"]
     try:
-      if SESSION["CURRENT_TICKET"] == {}:
+      if c_ticket == {}:
         print ("No ticket to be updated")
       else:
         now = time.time()
         if comment.strip() == "":
             comment = get_input("comment")
         note = get_input("note",multiline=True)
+        c_done_ratio=c_ticket["done_ratio"]
         done_ratio = get_input("done ratio (current: {0}%)"\
-                .format(SESSION["CURRENT_TICKET"]["done_ratio"]))
-        try:
-          estimated_hours = SESSION["CURRENT_TICKET"]["estimated_hours"]
-        except Exception:
-          estimated_hours = ""
-        try:
-          estimated_hours = get_input("estimated hours (current: {0})"\
-                .format(estimated_hours))
-          estimated_hours = long(estimated_hours)
-        except Exception:
-          estimated_hours = ""
-        try:
-          due_date = SESSION["CURRENT_TICKET"]["due_date"]
-        except Exception:
-          due_date = ""
-        try:
-          due_date = get_input("due date (YYYY/mm/dd; current: {0})"\
-                .format(due_date))
-          validate_date(due_date)
-        except Exception:
-          due_date = ""
+                .format(c_done_ratio),
+                validator=long,default=c_done_ratio)
+
+        estimated_hours = get_from_current_ticket("estimated_hours")
+        estimated_hours = get_input("estimated hours (current: {0})"\
+                .format(estimated_hours),validator=long,default=estimated_hours)
+        due_date = get_from_current_ticket("due_date")
+        due_date = get_input("due date (YYYY/mm/dd or today; current: {0})"\
+                .format(due_date),validator=validate_date,default=due_date)
+        if due_date == "today":
+          n = datetime.datetime.now()
+          due_date = "{0}/{1}/{2}".format(n.year,n.month,n.day)
 
         activity_id = select_option("activity", get_activities)
-        issue_id = SESSION["CURRENT_TICKET"]["id"]
+        issue_id = c_ticket["id"]
         update_issue(issue_id, comment,
                 note,done_ratio,due_date,estimated_hours)
         hours = (now - SESSION["LAST_TIME"]) / 3600.0
         create_time_entry(issue_id,activity_id,hours,comment)
         SESSION["LAST_TIME"] = now
-        try:
-          SESSION["CURRENT_TICKET"]["done_ratio"] = int(done_ratio)
-        except Exception:
-          pass
-        try:
-          SESSION["CURRENT_TICKET"]["estimated_hours"] = int(estimated_hours)
-        except Exception:
-          pass
-        try:
-          validate_date(due_date)
-          SESSION["CURRENT_TICKET"]["due_date"] = due_date
-        except Exception:
-          pass
+        
+        if done_ratio != "":
+            c_ticket["done_ratio"] = done_ratio
+        if estimated_hours != "":
+            c_ticket["estimated_hours"] = estimated_hours
+        if due_date != "":
+            c_ticket["due_date"] = due_date
 
     except CancelException as e:
         print ("Action cancelled")
@@ -827,11 +836,24 @@ class Console(cmd.Cmd):
             indent=4, separators=(',', ': ')))
         now = time.time()
         if SESSION["CURRENT_TICKET"] != {}:
-          print ("Current ticket Id: %s" % SESSION["CURRENT_TICKET"]["id"])
-          print ("Current ticket Subject: %s" % SESSION["CURRENT_TICKET"]["subject"])
+          print ("Current ticket Id: %s" % get_from_current_ticket("id"))
+          print ("Current ticket Subject: %s" % get_from_current_ticket("subject"))
+          print ("Current ticket Estimated hours: %s"\
+                  % get_from_current_ticket("estimated_hours"))
+          print ("Current ticket Due date: %s"\
+                  % get_from_current_ticket("due_date"))
+          print ("Current ticket % done: {0}".format(
+                  get_from_current_ticket("done_ratio")))
         if SESSION["PREVIOUS_TICKET"] != {}:
-          print ("Previous ticket Id: %s" % SESSION["PREVIOUS_TICKET"]["id"])
-          print ("Previous ticket Subject: %s" % SESSION["PREVIOUS_TICKET"]["subject"])
+          p_ticket = SESSION["PREVIOUS_TICKET"]
+          print ("Previous ticket Id: %s" % get_from_ticket(p_ticket,"id"))
+          print ("Previous ticket Subject: %s" % get_from_ticket(p_ticket,"subject"))
+          print ("Previous ticket Estimated hours: %s"\
+                  % get_from_ticket(p_ticket,"estimated_hours"))
+          print ("Previous ticket Due date: %s"\
+                  % get_from_ticket(p_ticket,"due_date"))
+          print ("Previous ticket % done: {0}".format(\
+                  get_from_ticket(p_ticket,"done_ratio")))
         print ("Last update: %s" %\
 datetime.datetime.fromtimestamp(SESSION["LAST_TIME"]).isoformat(' '))
         print ("Auto end: %s seconds" % ((SESSION["LAST_TIME"] + threshold) - now))
