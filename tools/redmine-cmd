@@ -605,6 +605,7 @@ def change_task_status(comment):
         logger.error("Unexpected exception: %s" % e)
 
 def create_task():
+    global baseurl
     global SESSION
     try:
       p_id = select_option("project", get_projects)
@@ -642,6 +643,10 @@ def create_task():
         SESSION["LAST_TIME"] = now
         SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
         SESSION["CURRENT_TICKET"] = new_ticket
+
+        print ("Ticket URL: %s/issues/%s"\
+                  % (baseurl,get_from_current_ticket("id")))
+
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
@@ -707,6 +712,7 @@ def previous_task():
 
 
 def update_task(comment):
+    global baseurl
     global SESSION
     c_ticket=SESSION["CURRENT_TICKET"]
     try:
@@ -746,6 +752,9 @@ def update_task(comment):
             c_ticket["estimated_hours"] = estimated_hours
         if due_date != "":
             c_ticket["due_date"] = due_date
+
+        print ("Ticket URL: %s/issues/%s"\
+                  % (baseurl,get_from_current_ticket("id")))
 
     except CancelException as e:
         print ("Action cancelled")
@@ -837,6 +846,8 @@ class Console(cmd.Cmd):
         now = time.time()
         if SESSION["CURRENT_TICKET"] != {}:
           print ("Current ticket Id: %s" % get_from_current_ticket("id"))
+          print ("Current ticket URL: %s/issues/%s"\
+                  % (baseurl,get_from_current_ticket("id")))
           print ("Current ticket Subject: %s" % get_from_current_ticket("subject"))
           print ("Current ticket Estimated hours: %s"\
                   % get_from_current_ticket("estimated_hours"))
@@ -847,6 +858,8 @@ class Console(cmd.Cmd):
         if SESSION["PREVIOUS_TICKET"] != {}:
           p_ticket = SESSION["PREVIOUS_TICKET"]
           print ("Previous ticket Id: %s" % get_from_ticket(p_ticket,"id"))
+          print ("Previous ticket URL: %s/issues/%s"\
+                  % (baseurl,get_from_ticket(p_ticket,"id")))
           print ("Previous ticket Subject: %s" % get_from_ticket(p_ticket,"subject"))
           print ("Previous ticket Estimated hours: %s"\
                   % get_from_ticket(p_ticket,"estimated_hours"))
