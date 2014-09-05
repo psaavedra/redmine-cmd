@@ -170,6 +170,9 @@ def issue_match_with_keywords(issue_dict,filters):
         if issue_dict.has_key("status") and \
         slugify(issue_dict["status"]["name"]).lower().find(f) > -1:
             found = True
+        if issue_dict.has_key("priority") and \
+        slugify(issue_dict["priority"]["name"]).lower().find(f) > -1:
+            found = True
         if issue_dict.has_key("project") and \
         slugify(issue_dict["project"]["name"]).lower().find(f) > -1:
             found = True
