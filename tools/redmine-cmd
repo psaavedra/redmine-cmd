@@ -32,7 +32,7 @@ import texttable as tt
 import simplejson as json
 from httplib2 import Http
 from optparse import OptionParser
-
+from slugify import slugify
 
 
 ################################################################################
@@ -147,6 +147,36 @@ def get_response(method, URL, body=None):
     logger.debug("resp: %s" % resp)
     logger.debug("content: %s" % content)
     return resp,content
+
+
+def issue_match_with_keywords(issue_dict,filters):
+    if not filters:
+      return True
+    for f in filters.split():
+        f = slugify(f).lower()
+        found = False
+        if slugify(str(issue_dict["id"])).find(f) > -1:
+            found = True
+        if slugify(issue_dict["subject"]).lower().find(f) > -1:
+            found = True
+        if slugify(issue_dict["description"]).lower().find(f) > -1:
+            found = True
+        if issue_dict.has_key("assigned_to") and \
+        slugify(issue_dict["assigned_to"]["name"]).lower().find(f) > -1:
+            found = True
+        if issue_dict.has_key("author") and \
+        slugify(issue_dict["author"]["name"]).lower().find(f) > -1:
+            found = True
+        if issue_dict.has_key("status") and \
+        slugify(issue_dict["status"]["name"]).lower().find(f) > -1:
+            found = True
+        if issue_dict.has_key("project") and \
+        slugify(issue_dict["project"]["name"]).lower().find(f) > -1:
+            found = True
+
+        if not found:
+            return False
+    return True
 
 def change_issue_status(issue_id,status,comment):
     global baseurl
@@ -368,35 +398,29 @@ def get_projects():
 def get_users():
     return get_objects("users","id","login")
 
-def get_issues(assigned_to_id="me", status="open"):
+def get_issues(assigned_to_id="me", status="open", project_id=None, filters=None):
     global baseurl
     global key
     global logger
     options=[]
-    limit = 50
+    limit = 100
     offset = 0
     default = None
-    print ('''\033[33;01mIssues %s assigned to %s:\033[31;01m>\033[0;0m''' \
+    if assigned_to_id:
+      print ('''\033[33;01mIssues %s assigned to %s:\033[31;01m>\033[0;0m''' \
             % (status,assigned_to_id))
+    else:
+      print ('''\033[33;01mIssues %s:\033[31;01m>\033[0;0m''' \
+            % (status))
 
     output = []
     outputt = tt.Texttable()
     outputt.set_deco(tt.Texttable.HEADER)
     outputt.set_cols_width([7,6,6,10,10,8,25])
 
-    try:
-      while True:
-        params="?key=%s&offset=%s&limit=%s&status_id=%s&assigned_to_id=%s&sort=priority:desc,updated_on:desc" % \
-            (key,offset,limit,status,assigned_to_id)
-        getURL="%s/issues.json%s" % (baseurl,params)
-        resp, content = get_response("GET", getURL)
-        try:
-            received = json.loads(content)
-            # print (received)
-            try:
-              outputt.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
-              outputt.set_cols_valign(["t", "t", "t", "t", "t", "t", "t"])
-              output.append( [
+    outputt.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
+    outputt.set_cols_valign(["t", "t", "t", "t", "t", "t", "t"])
+    output.append( [
 "#id",
 "prior",
 "status",
@@ -406,32 +430,54 @@ def get_issues(assigned_to_id="me", status="open"):
 "subject"
 ])
 
+    project_id_param=""
+    if project_id:
+        project_id_param="&project_id=%s" % project_id
+
+    assigned_to_id_param=""
+    if assigned_to_id:
+        assigned_to_id_param="&assigned_to_id=%s" % assigned_to_id
+    try:
+      while True:
+        params="?key=%s%s&offset=%s&limit=%s&status_id=%s%s&sort=priority:desc,updated_on:desc" % \
+            (key,project_id_param,offset,limit,status,assigned_to_id_param)
+        getURL="%s/issues.json%s" % (baseurl,params)
+        resp, content = get_response("GET", getURL)
+        if filters:
+            print "... ... ..."
+        try:
+            received = json.loads(content)
+            # print (received)
+            try:
+              t_id = None
               for p in received["issues"]:
-                p["updated_on"] = p["updated_on"].split("+")[0].strip() if p.has_key("updated_on") else "NO DATE"
-                p["due_date"] = p["due_date"].split("+")[0].strip() if p.has_key("due_date") else "NO DATE"
-                default_mark = ""
-                if SESSION["CURRENT_TICKET"]\
-                  and not(SESSION["CURRENT_TICKET"] == {})\
-                  and p["id"] == SESSION["CURRENT_TICKET"]["id"]:
-                      default_mark = "* "
-                output.append( [
-"{0}{1}".format(default_mark,p["id"]),
-p["priority"]["name"],
-p["status"]["name"],
-p["updated_on"],
-p["due_date"],
-p["project"]["name"],
-p["subject"]
-])
-                options.append(int(p["id"]))
+                t_id = ["id"]
+                if issue_match_with_keywords(p,filters):
+                    p["updated_on"] = p["updated_on"].split("+")[0].strip() if p.has_key("updated_on") else "NO DATE"
+                    p["due_date"] = p["due_date"].split("+")[0].strip() if p.has_key("due_date") else "NO DATE"
+                    default_mark = ""
+                    if SESSION["CURRENT_TICKET"]\
+                      and not(SESSION["CURRENT_TICKET"] == {})\
+                      and p["id"] == SESSION["CURRENT_TICKET"]["id"]:
+                          default_mark = "* "
+                    output.append( [
+                      "{0}{1}".format(default_mark,p["id"]),
+                      p["priority"]["name"],
+                      p["status"]["name"],
+                      p["updated_on"],
+                      p["due_date"],
+                      p["project"]["name"],
+                      p["subject"]
+                    ])
+                    options.append(int(p["id"]))
             except Exception as e:
-              logger.error("Exception: %s" % e)
+              logger.error("Exception processing issue %s: %s" % (t_id,e))
               pass
             offset+=limit
             if len(received["issues"])<limit:
                 break # no more items to iter
         except Exception as e:
-            logger.error("Exception: %s" % e)
+            logger.error("Exception loading JSON from %s: %s" % (getURL, e))
             break
 
       try:
@@ -441,7 +487,7 @@ p["subject"]
       except Exception as e:
         logger.error("Error getting the current ticket: %s" % e)
     except Exception as e:
-        logger.error("Unexpected error: %s" % e)
+        logger.error("Unexpected error getting issues: %s" % e)
     outputt.add_rows(output)
     print outputt.draw() + "\n"
     return options, default
@@ -562,9 +608,9 @@ def get_trackers():
     print (output)
     return options, default
 
-def select_option(option_name, get_options):
+def select_option(option_name, get_options, **kwargs):
     option = None
-    options,default = get_options()
+    options,default = get_options(**kwargs)
     # print (options)
     options.append(-1)
     while option not in options:
@@ -693,6 +739,28 @@ def set_task(issue_id):
     except Exception as e:
         logged.error("Unexpected exception: %s" % e)
 
+def search_task(filters):
+    global SESSION
+    try:
+        try:
+            project_id = int(filters.split()[0])
+            filters = " ".join(filters.split()[1:])
+            print "Assuming %s as the project_id" % project_id
+        except Exception:
+            project_id = None
+
+        issue_id = select_option("issue", get_issues,
+          assigned_to_id=None, status="open", project_id=project_id,filters=filters)
+        res = get_object("issues",issue_id,"id", "subject")
+        if res != {}:
+          SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
+          end_task("Change of activity")
+          SESSION["CURRENT_TICKET"] = res["issue"]
+          SESSION["LAST_TIME"] = time.time()
+    except CancelException as e:
+        print ("Action cancelled")
+    except Exception as e:
+        logger.error("Unexpected exception: %s" % e)
 
 def previous_task():
     global SESSION
@@ -833,6 +901,11 @@ class Console(cmd.Cmd):
         Select a task as working on it """
         set_task(issue_id)
 
+    def do_searchtask(self, filters):
+        """searchtask
+        Search and set task by keywords """
+        search_task(filters)
+
     def do_status(self, line):
         """viewstatus
         View enviroment"""
@@ -912,11 +985,15 @@ datetime.datetime.fromtimestamp(SESSION["LAST_TIME"]).isoformat(' '))
         Select a task as working on it """
         set_task(issue_id)
 
+    def do_search(self, filters):
+        """searchtask
+        Search and set task by keywords """
+        search_task(filters)
+
     def do_prev(self, line):
         """previoustask
         Select the previous task as working on it """
         previous_task()
-
 
     def do_tasks(self, args_line):
         """viewtasks

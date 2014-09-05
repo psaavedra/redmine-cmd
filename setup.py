@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = "0.7.2"
+version = "0.8.0"
 
 long_description = ""
 try:
@@ -33,6 +33,7 @@ setup(
         "httplib2",
         "simplejson",
         "texttable",
+        "slugify"
     ],
     data_files=[
         ('/usr/share/doc/redmine-cmd/', ['cfg/redmine_cmd.cfg.example']),
