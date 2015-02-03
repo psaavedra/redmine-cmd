@@ -110,10 +110,11 @@ def setup():
 def validate_date(date_text):
     try:
         if date_text == "today":
-          return
-        datetime.datetime.strptime(date_text, '%Y/%m/%d')
+          return date_text
+        d = datetime.datetime.strptime(date_text, '%Y-%m-%d')
+        return  "{0:04d}-{1:02d}-{2:02d}".format(d.year,d.month,d.day)
     except ValueError:
-        raise ValueError("Incorrect data format, should be YYYY/MM/DD or today")
+        raise ValueError("Incorrect data format, should be YYYY-MM-DD or today")
 
 def get_from_ticket(ticket,attribute):
     t = ticket
@@ -275,6 +276,7 @@ def update_issue(issue_id, comment, note,
       params="?key=%s" % (key)
       URL="%s/issues/%s.json%s" % (baseurl,issue_id,params)
       json_doc=json.dumps(json_doc)
+      logger.debug("Body: %s" % json_doc)
       resp,content = get_response("PUT", URL, json_doc)
       print ("Response: %s" % resp["status"])
       print (content)
@@ -296,10 +298,10 @@ def get_input(option_name, multiline=False, default=None, validator=None):
         res = raw_input('\033[35;01mEnter %s: \033[0;0m' % option_name)
     if validator:
         try:
-            validator(res)
+            res = validator(res)
         except Exception:
             res = ""
-    if default and res.strip() == "":
+    if default and res == "":
         return default
     return res
 
@@ -667,10 +669,10 @@ def create_task():
       description = get_input("description",multiline=True)
       estimated_hours = get_input("estimated hours",validator=long)
       due_date = get_input(\
-"due date (YYYY/mm/dd or today)",validator=validate_date)
+"due date (YYYY-mm-dd or today)",validator=validate_date)
       if due_date == "today":
           n = datetime.datetime.now()
-          due_date = "{0}/{1}/{2}".format(n.year,n.month,n.day)
+          due_date = "{0:04d}-{1:02d}-{2:02d}".format(n.year,n.month,n.day)
 
       issue_dict={
       "issue": {
@@ -803,11 +805,11 @@ def update_task(comment):
         estimated_hours = get_input("estimated hours (current: {0})"\
                 .format(estimated_hours),validator=long,default=estimated_hours)
         due_date = get_from_current_ticket("due_date")
-        due_date = get_input("due date (YYYY/mm/dd or today; current: {0})"\
+        due_date = get_input("due date (YYYY-mm-dd or today; current: {0})"\
                 .format(due_date),validator=validate_date,default=due_date)
         if due_date == "today":
           n = datetime.datetime.now()
-          due_date = "{0}/{1}/{2}".format(n.year,n.month,n.day)
+          due_date = "{0:04d}-{1:02d}-{2:02d}".format(n.year,n.month,n.day)
 
         activity_id = select_option("activity", get_activities)
         issue_id = c_ticket["id"]
