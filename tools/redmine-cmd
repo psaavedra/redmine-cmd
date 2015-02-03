@@ -34,7 +34,6 @@ from httplib2 import Http
 from optparse import OptionParser
 from slugify import slugify
 
-
 ################################################################################
 conffile = ".redmine_cmd.cfg"
 logfile = "/dev/stdout"
@@ -53,6 +52,7 @@ session_file=".redmine_cmd.session"
 sentinel=".end."
 threshold=30*60
 baseurl="https://tracker.host.com"
+default_tracker_id=1
 key="9999999999999999999999999999999999999999"
 headers = {
   'User-Agent': 'redmine-cmd',
@@ -65,6 +65,22 @@ headers = {
 class CancelException(Exception):
     pass
 
+def update_prompt(func):
+    """
+    update prompt
+    """
+    def inner_decorator(*args, **kwargs):
+        global SESSION
+        global console
+        res = func(*args, **kwargs)
+        try:
+          ticket_id = SESSION["CURRENT_TICKET"]["id"]
+          console.prompt = "\033[33;01mTask #%s\033[31;01m>\033[0;0m" % ticket_id
+        except Exception:
+          console.prompt = console.default_prompt
+        return res
+    return inner_decorator
+
 def exit():
     global thread
     global session_file
@@ -75,7 +91,6 @@ def exit():
     thread.end = True
     thread.join()
     sys.exit(0)
-
 
 def setup():
     global conffile
@@ -88,6 +103,8 @@ def setup():
             try:
                 value = cfg.get("global",o)
                 if o == "threshold":
+                    globals()[o] = int(value)
+                elif o == "default_tracker_id":
                     globals()[o] = int(value)
                 else:
                     globals()[o] = value
@@ -200,7 +217,6 @@ def change_issue_status(issue_id,status,comment):
     resp,content = get_response("PUT", URL, json_doc)
     print ("Response: %s" % resp["status"])
 
-
 def create_issue(issue_dict):
     global baseurl
     global key
@@ -211,6 +227,7 @@ def create_issue(issue_dict):
     params="?key=%s" % (key)
     createIssueURL="%s/issues.json%s" % (baseurl,params)
     json_doc=json.dumps(issue_dict)
+    logger.debug("Body: %s" % json_doc)
     resp,content = get_response("POST", createIssueURL, json_doc)
     print ("Response: %s" % resp["status"])
     try:
@@ -655,8 +672,10 @@ def change_task_status(comment):
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
+@update_prompt
 def create_task():
     global baseurl
+    global default_tracker_id
     global SESSION
     try:
       p_id = select_option("project", get_projects)
@@ -679,7 +698,7 @@ def create_task():
         "description": description,
         "subject": subject,
         "project_id": p_id,
-        "tracker_id": "9",
+        "tracker_id": default_tracker_id,
         "assigned_to_id": u_id,
       }
       }
@@ -703,6 +722,7 @@ def create_task():
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
+@update_prompt
 def end_task(comment):
     global SESSION
     try:
@@ -727,6 +747,7 @@ def end_task(comment):
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
+@update_prompt
 def set_task(issue_id):
     global SESSION
     try:
@@ -735,15 +756,29 @@ def set_task(issue_id):
           issue_id = select_option("issue", get_myissues)
         res = get_object("issues",issue_id,"id", "subject")
         if res != {}:
-          SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
-          end_task("Change of activity")
+          try:
+              tmp_current = SESSION["CURRENT_TICKET"]
+          except Exception:
+              tmp_current = {}
+          try:
+              tmp_previous = SESSION["PREVIOUS_TICKET"]
+          except Exception:
+              tmp_previous = {}
+          if tmp_current != {} and \
+          (res["issue"]["id"] != tmp_current["id"]):
+              SESSION["PREVIOUS_TICKET"]=tmp_current
+              end_task("Change of activity")
+          if tmp_current == {} and \
+          (res["issue"]["id"] == tmp_previous["id"]):
+              SESSION["PREVIOUS_TICKET"]={}
           SESSION["CURRENT_TICKET"] = res["issue"]
           SESSION["LAST_TIME"] = time.time()
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
-        logged.error("Unexpected exception: %s" % e)
+        logger.error("Unexpected exception: %s" % e)
 
+@update_prompt
 def search_task(filters):
     global SESSION
     try:
@@ -758,8 +793,21 @@ def search_task(filters):
           assigned_to_id=None, status="open", project_id=project_id,filters=filters)
         res = get_object("issues",issue_id,"id", "subject")
         if res != {}:
-          SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
-          end_task("Change of activity")
+          try:
+              tmp_current = SESSION["CURRENT_TICKET"]
+          except Exception:
+              tmp_current = {}
+          try:
+              tmp_previous = SESSION["PREVIOUS_TICKET"]
+          except Exception:
+              tmp_previous = {}
+          if tmp_current != {} and \
+          (res["issue"]["id"] != tmp_current["id"]):
+              SESSION["PREVIOUS_TICKET"]=tmp_current
+              end_task("Change of activity")
+          if tmp_current == {} and \
+          (res["issue"]["id"] == tmp_previous["id"]):
+              SESSION["PREVIOUS_TICKET"]={}
           SESSION["CURRENT_TICKET"] = res["issue"]
           SESSION["LAST_TIME"] = time.time()
     except CancelException as e:
@@ -767,10 +815,15 @@ def search_task(filters):
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
+@update_prompt
 def previous_task():
     global SESSION
     try:
-      if not SESSION["PREVIOUS_TICKET"]=={} and not SESSION["CURRENT_TICKET"]=={}:
+      if SESSION.has_key("PREVIOUS_TICKET") \
+              and not SESSION["PREVIOUS_TICKET"]=={}:
+          if not SESSION.has_key("CURRENT_TICKET") \
+                 or SESSION["CURRENT_TICKET"]=={}:
+                     SESSION["CURRENT_TICKET"]=={}
           tmp_previous = SESSION["PREVIOUS_TICKET"]
           tmp_current = SESSION["CURRENT_TICKET"]
           end_task("Change of activity")
@@ -781,8 +834,7 @@ def previous_task():
       else:
         print ("No previous ticket")
     except Exception as e:
-        logged.error("Unexpected exception: %s" % e)
-
+        logger.error("Unexpected exception: %s" % e)
 
 def update_task(comment):
     global baseurl
@@ -934,6 +986,7 @@ class Console(cmd.Cmd):
           print ("Current ticket % done: {0}".format(
                   get_from_current_ticket("done_ratio")))
         if SESSION["PREVIOUS_TICKET"] != {}:
+          print ("")
           p_ticket = SESSION["PREVIOUS_TICKET"]
           print ("Previous ticket Id: %s" % get_from_ticket(p_ticket,"id"))
           print ("Previous ticket URL: %s/issues/%s"\
@@ -945,6 +998,7 @@ class Console(cmd.Cmd):
                   % get_from_ticket(p_ticket,"due_date"))
           print ("Previous ticket % done: {0}".format(\
                   get_from_ticket(p_ticket,"done_ratio")))
+        print ("")
         print ("Last update: %s" %\
 datetime.datetime.fromtimestamp(SESSION["LAST_TIME"]).isoformat(' '))
         print ("Auto end: %s seconds" % ((SESSION["LAST_TIME"] + threshold) - now))
@@ -1072,7 +1126,12 @@ if __name__ == '__main__':
     except Exception:
       pass
     console = Console()
-    console.prompt = "\033[33;01mTracker\033[31;01m>\033[0;0m "
+    console.default_prompt = "\033[33;01mTracker\033[31;01m>\033[0;0m "
+    try:
+       ticket_id = SESSION["CURRENT_TICKET"]["id"]
+       console.prompt = "\033[33;01m#%s\033[31;01m>\033[0;0m" % ticket_id
+    except Exception:
+       console.prompt = console.default_prompt
     thread = TimeThread(console)
     thread.start()
     console.cmdloop()

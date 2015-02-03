@@ -5,6 +5,7 @@ baseurl=https://tracker.host.com
 key=myprivateapikey
 sentinel=.end.
 session_file=/home/psaavedra/.redmine_cmd.session
+default_tracker_id=1
 
 [issue_status]
 new=1
