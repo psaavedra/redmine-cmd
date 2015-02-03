@@ -429,7 +429,7 @@ def get_issues(assigned_to_id="me", status="open", project_id=None, filters=None
     offset = 0
     default = None
     if assigned_to_id:
-      print ('''\033[33;01mIssues %s assigned to %s:\033[31;01m>\033[0;0m''' \
+      print ('''\033[33;01m%s issues assigned to %s:\033[31;01m>\033[0;0m''' \
             % (status,assigned_to_id))
     else:
       print ('''\033[33;01mIssues %s:\033[31;01m>\033[0;0m''' \
