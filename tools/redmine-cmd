@@ -647,6 +647,7 @@ def select_option(option_name, get_options, **kwargs):
 
 
 ################################################################################
+@update_prompt
 def change_task_status(comment):
     global SESSION
     try:
