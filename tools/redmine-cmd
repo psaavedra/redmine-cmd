@@ -683,6 +683,9 @@ def create_task():
       # t_id = select_option("tracker", get_trackers)
       try:
         u_id = select_option("user", get_users)
+      except CancelException:
+        print ("Action cancelled")
+        return
       except Exception:
         u_id = int(SESSION["CURRENT_USER"]["id"])
       subject = get_input("subject")
