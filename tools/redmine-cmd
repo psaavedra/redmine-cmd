@@ -75,7 +75,7 @@ def update_prompt(func):
         res = func(*args, **kwargs)
         try:
           ticket_id = SESSION["CURRENT_TICKET"]["id"]
-          console.prompt = "\033[33;01m#%s\033[31;01m>\033[0;0m" % ticket_id
+          console.prompt = "\033[33;01m[#%s]\033[31;01m>\033[0;0m " % ticket_id
         except Exception:
           console.prompt = console.default_prompt
         return res
@@ -1130,7 +1130,7 @@ if __name__ == '__main__':
     console.default_prompt = "\033[33;01mTracker\033[31;01m>\033[0;0m "
     try:
        ticket_id = SESSION["CURRENT_TICKET"]["id"]
-       console.prompt = "\033[33;01m#%s\033[31;01m>\033[0;0m" % ticket_id
+       console.prompt = "\033[33;01m[#%s]\033[31;01m>\033[0;0m " % ticket_id
     except Exception:
        console.prompt = console.default_prompt
     thread = TimeThread(console)
