@@ -768,7 +768,7 @@ def set_task(issue_id):
           (res["issue"]["id"] != tmp_current["id"]):
               SESSION["PREVIOUS_TICKET"]=tmp_current
               end_task("Change of activity")
-          if tmp_current == {} and \
+          if tmp_current == {} and tmp_previous.has_key("id") and\
           (res["issue"]["id"] == tmp_previous["id"]):
               SESSION["PREVIOUS_TICKET"]={}
           SESSION["CURRENT_TICKET"] = res["issue"]
