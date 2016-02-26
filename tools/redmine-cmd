@@ -414,6 +414,56 @@ def get_objects(objects_name,object_key_id, object_key_name):
       print (output)
     return options, default
 
+def get_memberships(project_id):
+    global baseurl
+    global key
+    global headers
+    global SESSION
+    limit = 50
+    offset = 0
+    options=[]
+    default = None
+    print ('''\033[33;01mAvailable members:\033[31;01m>\033[0;0m''')
+    output = ""
+    while True:
+        params="?key=%s&offset=%s&limit=%s" % (key,offset,limit)
+        getURL="%s/projects/%s/memberships.json%s" % (baseurl,str(project_id),params)
+        resp, content = get_response("GET", getURL)
+        try:
+            received = json.loads(content)
+            try:
+              for o in received["memberships"]:
+                  output += "; %(name)s: %(id)s" % o["user"]
+                  options.append(int(o["user"]["id"]))
+            except Exception as e:
+              logger.error("Exception: %s" % e)
+            offset+=limit
+            if len(received['memberships'])<limit:
+                break # no more items to iter
+        except Exception as e:
+            logger.error("Exception: %s" % e)
+            break
+    try:
+        current_ticket_related_key = "assigned_to"
+        if SESSION["CURRENT_TICKET"] and not( SESSION["CURRENT_TICKET"] == {}):
+            output += "; Default - %s: %s" \
+% (SESSION["CURRENT_TICKET"][current_ticket_related_key]["name"], SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
+            options.append(SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
+            default = SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"]
+        else:
+            output += "; Default - %s: %s" \
+% (SESSION["CURRENT_USER"]["firstname"], SESSION["CURRENT_USER"]["id"])
+            options.append(SESSION["CURRENT_USER"]["id"])
+            default = SESSION["CURRENT_USER"]["id"]
+
+    except Exception as e:
+        logger.error("Unexpected error: %s" % e)
+    try:
+      print (output[2:])
+    except Exception:
+      print (output)
+    return options, default
+
 def get_projects():
     return get_objects("projects","id","name")
 
@@ -682,7 +732,7 @@ def create_task():
       p_id = select_option("project", get_projects)
       # t_id = select_option("tracker", get_trackers)
       try:
-        u_id = select_option("user", get_users)
+        u_id = select_option("memberships", get_memberships, project_id=p_id)
       except CancelException:
         print ("Action cancelled")
         return
