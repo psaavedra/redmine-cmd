@@ -485,6 +485,7 @@ def get_projects():
 def get_users():
     return get_objects("users", "id", "login")
 
+
 def get_issues(assigned_to_id="me", status="open", project_id=None, filters=None):
     global baseurl
     global key
@@ -525,54 +526,54 @@ def get_issues(assigned_to_id="me", status="open", project_id=None, filters=None
     if assigned_to_id:
         assigned_to_id_param = "&assigned_to_id=%s" % assigned_to_id
     try:
-      while True:
-        params = "?key=%s%s&offset=%s&limit=%s&status_id=%s%s&sort=priority:desc,updated_on:desc" % \
-            (key, project_id_param, offset, limit, status, assigned_to_id_param)
-        getURL = "%s/issues.json%s" % (baseurl,params)
-        resp, content = get_response("GET", getURL)
-        if filters:
-            print "... ... ..."
-        try:
-            received = json.loads(content)
-            # print (received)
+        while True:
+            params = "?key=%s%s&offset=%s&limit=%s&status_id=%s%s&sort=priority:desc,updated_on:desc" % \
+                (key, project_id_param, offset, limit, status, assigned_to_id_param)
+            getURL = "%s/issues.json%s" % (baseurl, params)
+            resp, content = get_response("GET", getURL)
+            if filters:
+                print "... ... ..."
             try:
-              t_id = None
-              for p in received["issues"]:
-                t_id = ["id"]
-                if issue_match_with_keywords(p,filters):
-                    p["updated_on"] = p["updated_on"].split("+")[0].strip() if p.has_key("updated_on") else "NO DATE"
-                    p["due_date"] = p["due_date"].split("+")[0].strip() if p.has_key("due_date") else "NO DATE"
-                    default_mark = ""
-                    if SESSION["CURRENT_TICKET"]\
-                      and not(SESSION["CURRENT_TICKET"] == {})\
-                      and p["id"] == SESSION["CURRENT_TICKET"]["id"]:
-                          default_mark = "* "
-                    output.append( [
-                      "{0}{1}".format(default_mark,p["id"]),
-                      p["priority"]["name"],
-                      p["status"]["name"],
-                      p["updated_on"],
-                      p["due_date"],
-                      p["project"]["name"],
-                      p["subject"]
-                    ])
-                    options.append(int(p["id"]))
+                received = json.loads(content)
+                # print (received)
+                try:
+                    t_id = None
+                    for p in received["issues"]:
+                        t_id = ["id"]
+                        if issue_match_with_keywords(p, filters):
+                            p["updated_on"] = p["updated_on"].split("+")[0].strip() if "updated_on" in p else "NO DATE"
+                            p["due_date"] = p["due_date"].split("+")[0].strip() if "due_date" in p else "NO DATE"
+                            default_mark = ""
+                            if SESSION["CURRENT_TICKET"]\
+                                    and not(SESSION["CURRENT_TICKET"] == {})\
+                                    and p["id"] == SESSION["CURRENT_TICKET"]["id"]:
+                                default_mark = "* "
+                            output.append([
+                                "{0}{1}".format(default_mark, p["id"]),
+                                p["priority"]["name"],
+                                p["status"]["name"],
+                                p["updated_on"],
+                                p["due_date"],
+                                p["project"]["name"],
+                                p["subject"]
+                            ])
+                            options.append(int(p["id"]))
+                except Exception as e:
+                    logger.error("Exception processing issue %s: %s" % (t_id, e))
+                    pass
+                offset += limit
+                if len(received["issues"]) < limit:
+                    break  # no more items to iter
             except Exception as e:
-                logger.error("Exception processing issue %s: %s" % (t_id, e))
-                pass
-            offset+=limit
-            if len(received["issues"]) < limit:
-                break  # no more items to iter
-        except Exception as e:
-            logger.error("Exception loading JSON from %s: %s" % (getURL, e))
-            break
+                logger.error("Exception loading JSON from %s: %s" % (getURL, e))
+                break
 
-      try:
-          if SESSION["CURRENT_TICKET"] and not( SESSION["CURRENT_TICKET"] == {}):
-              options.append(SESSION["CURRENT_TICKET"]["id"])
-              default = SESSION["CURRENT_TICKET"]["id"]
-      except Exception as e:
-          logger.error("Error getting the current ticket: %s" % e)
+        try:
+            if SESSION["CURRENT_TICKET"] and not(SESSION["CURRENT_TICKET"] == {}):
+                options.append(SESSION["CURRENT_TICKET"]["id"])
+                default = SESSION["CURRENT_TICKET"]["id"]
+        except Exception as e:
+            logger.error("Error getting the current ticket: %s" % e)
     except Exception as e:
         logger.error("Unexpected error getting issues: %s" % e)
     outputt.add_rows(output)
@@ -603,12 +604,12 @@ def get_time_entries(user_id=None):
             for p in received["time_entries"]:
                 if not user_id or p["user"]["id"] == int(user_id):
                     output += \
-                  str(p["spent_on"]) \
-                  + " - " + str(p["project"]["name"]) \
-                  + " - " + str(p["activity"]["name"]) \
-                  + " - " + str(p["user"]["name"]) \
-                  + " - " + str(p["hours"]) \
-                  + " - " + str(p["comments"]) + "\n"
+                        str(p["spent_on"]) \
+                        + " - " + str(p["project"]["name"]) \
+                        + " - " + str(p["activity"]["name"]) \
+                        + " - " + str(p["user"]["name"]) \
+                        + " - " + str(p["hours"]) \
+                        + " - " + str(p["comments"]) + "\n"
                     options.append(int(p["id"]))
         except Exception as e:
             logger.error("Exception: %s" % e)
@@ -625,14 +626,14 @@ def get_activities(quiet=False):
     options = []
     default = SESSION["LAST_ACTIVITY"]
     if not quiet:
-        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' \
-                % "activities")
+        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m'''
+               % "activities")
     cfg = ConfigParser.ConfigParser()
     cfg.read(conffile)
     try:
         for o in cfg.options("activities"):
             try:
-                value = cfg.get("activities",o)
+                value = cfg.get("activities", o)
                 if o.lower() == "default":
                     if not default:
                         default = int(value)
@@ -640,12 +641,13 @@ def get_activities(quiet=False):
                 output += "%s: %s\n" % (o, value)
                 options.append(int(value))
             except Exception as e:
-                logger.error("Error parsing %s - %s: %s" % ("activities",o,e))
+                logger.error("Error parsing %s - %s: %s" % ("activities", o, e))
     except Exception as e:
         logger.error("Raised exception: %s" % e)
     if not quiet:
         print (output)
     return options, default
+
 
 def get_issue_status(quiet=False):
     global conffile
@@ -653,20 +655,20 @@ def get_issue_status(quiet=False):
     options = []
     default = None
     if not quiet:
-        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' \
-                % "issue status")
+        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m'''
+               % "issue status")
     cfg = ConfigParser.ConfigParser()
     cfg.read(conffile)
     try:
         for o in cfg.options("issue_status"):
             try:
-                value = cfg.get("issue_status",o)
+                value = cfg.get("issue_status", o)
                 output += o + ": " + value + "\n"
                 options.append(int(value))
                 if o.lower() == "default":
                     default = int(value)
             except Exception as e:
-                logger.error("Error parsing %s - %s: %s" % ("activities",o,e))
+                logger.error("Error parsing %s - %s: %s" % ("activities", o, e))
     except Exception as e:
         logger.error("Raised exception: %s" % e)
     if not quiet:
@@ -685,13 +687,13 @@ def get_trackers():
     try:
         for o in cfg.options("trackers"):
             try:
-                value = cfg.get("trackers",o)
+                value = cfg.get("trackers", o)
                 output += o + ": " + value + "\n"
                 options.append(int(value))
                 if o.lower() == "default":
                     default = int(value)
             except Exception as e:
-                logger.error("Error parsing %s - %s: %s" % ("trackers",o,e))
+                logger.error("Error parsing %s - %s: %s" % ("trackers", o, e))
     except Exception as e:
         logger.error("Raised exception: %s" % e)
     print (output)
@@ -719,27 +721,28 @@ def select_option(option_name, get_options, **kwargs):
 def change_task_status(comment):
     global SESSION
     try:
-      if SESSION["CURRENT_TICKET"] == {}:
-        print ("No ticket to be modified")
-        pass
-      else:
-        status = select_option("issue", get_issue_status)
-        if comment.strip() == "":
-          comment = get_input("comment",
-                      default="Task status updated")
-        now = time.time()
-        _,activity_id = get_activities()
-        issue_id = SESSION["CURRENT_TICKET"]["id"]
-        hours = (now - SESSION["LAST_TIME"]) / 3600.0
-        create_time_entry(issue_id,activity_id,hours,comment)
-        change_issue_status(issue_id, status, comment)
-        SESSION["LAST_TIME"] = now
-        SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
-        SESSION["CURRENT_TICKET"] = {}
+        if SESSION["CURRENT_TICKET"] == {}:
+            print ("No ticket to be modified")
+            pass
+        else:
+            status = select_option("issue", get_issue_status)
+            if comment.strip() == "":
+                comment = get_input("comment",
+                                    default="Task status updated")
+            now = time.time()
+            _, activity_id = get_activities()
+            issue_id = SESSION["CURRENT_TICKET"]["id"]
+            hours = (now - SESSION["LAST_TIME"]) / 3600.0
+            create_time_entry(issue_id, activity_id, hours, comment)
+            change_issue_status(issue_id, status, comment)
+            SESSION["LAST_TIME"] = now
+            SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
+            SESSION["CURRENT_TICKET"] = {}
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
+
 
 @update_prompt
 def create_task():
@@ -747,108 +750,111 @@ def create_task():
     global default_tracker_id
     global SESSION
     try:
-      p_id = select_option("project", get_projects)
-      # t_id = select_option("tracker", get_trackers)
-      try:
-        u_id = select_option("memberships", get_memberships, project_id=p_id)
-      except CancelException:
-        print ("Action cancelled")
-        return
-      except Exception:
-        u_id = int(SESSION["CURRENT_USER"]["id"])
-      subject = get_input("subject")
-      description = get_input("description",multiline=True)
-      estimated_hours = get_input("estimated hours",validator=long)
-      due_date = get_input(\
-"due date (YYYY-mm-dd or today)",validator=validate_date)
-      if due_date == "today":
-          n = datetime.datetime.now()
-          due_date = "{0:04d}-{1:02d}-{2:02d}".format(n.year,n.month,n.day)
+        p_id = select_option("project", get_projects)
+        # t_id = select_option("tracker", get_trackers)
+        try:
+            u_id = select_option("memberships", get_memberships, project_id=p_id)
+        except CancelException:
+            print ("Action cancelled")
+            return
+        except Exception:
+            u_id = int(SESSION["CURRENT_USER"]["id"])
+        subject = get_input("subject")
+        description = get_input("description", multiline=True)
+        estimated_hours = get_input("estimated hours", validator=long)
+        due_date = get_input("due date (YYYY-mm-dd or today)",
+                             validator=validate_date)
+        if due_date == "today":
+            n = datetime.datetime.now()
+            due_date = "{0:04d}-{1:02d}-{2:02d}".format(n.year, n.month, n.day)
 
-      issue_dict={
-      "issue": {
-        "description": description,
-        "subject": subject,
-        "project_id": p_id,
-        "tracker_id": default_tracker_id,
-        "assigned_to_id": u_id,
-      }
-      }
-      if estimated_hours != "":
-          issue_dict["issue"]["estimated_hours"]=estimated_hours
-      if due_date != "":
-          issue_dict["issue"]["due_date"]=due_date
+        issue_dict = {
+            "issue": {
+                "description": description,
+                "subject": subject,
+                "project_id": p_id,
+                "tracker_id": default_tracker_id,
+                "assigned_to_id": u_id,
+            }
+        }
+        if estimated_hours != "":
+            issue_dict["issue"]["estimated_hours"] = estimated_hours
+        if due_date != "":
+            issue_dict["issue"]["due_date"] = due_date
 
-      new_ticket = create_issue(issue_dict)
-      if new_ticket:
-        now = time.time()
-        SESSION["LAST_TIME"] = now
-        SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
-        SESSION["CURRENT_TICKET"] = new_ticket
+        new_ticket = create_issue(issue_dict)
+        if new_ticket:
+            now = time.time()
+            SESSION["LAST_TIME"] = now
+            SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
+            SESSION["CURRENT_TICKET"] = new_ticket
 
-        print ("Ticket URL: %s/issues/%s"\
-                  % (baseurl,get_from_current_ticket("id")))
+            print ("Ticket URL: %s/issues/%s"
+                   % (baseurl, get_from_current_ticket("id")))
 
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
+
 
 @update_prompt
 def end_task(comment):
     global SESSION
     try:
-      if SESSION["CURRENT_TICKET"] == {}:
-        pass
-      else:
-        if comment.strip() == "":
-          comment = get_input("comment")
-        now = time.time()
-        # print ("Ending task - comment: %s"  % comment)
-        print ('''\033[35;01mEnding task %s - comment %s\033[0;0m''' \
-          % (SESSION["CURRENT_TICKET"]["id"], comment))
-        _,activity_id = get_activities(quiet=True)
-        issue_id = SESSION["CURRENT_TICKET"]["id"]
-        hours = (now - SESSION["LAST_TIME"]) / 3600.0
-        create_time_entry(issue_id,activity_id,hours,comment)
-        SESSION["LAST_TIME"] = now
-        SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
-        SESSION["CURRENT_TICKET"] = {}
+        if SESSION["CURRENT_TICKET"] == {}:
+            pass
+        else:
+            if comment.strip() == "":
+                comment = get_input("comment")
+            now = time.time()
+            # print ("Ending task - comment: %s"  % comment)
+            print ('''\033[35;01mEnding task %s - comment %s\033[0;0m'''
+                   % (SESSION["CURRENT_TICKET"]["id"], comment))
+            _, activity_id = get_activities(quiet=True)
+            issue_id = SESSION["CURRENT_TICKET"]["id"]
+            hours = (now - SESSION["LAST_TIME"]) / 3600.0
+            create_time_entry(issue_id, activity_id, hours, comment)
+            SESSION["LAST_TIME"] = now
+            SESSION["PREVIOUS_TICKET"] = SESSION["CURRENT_TICKET"]
+            SESSION["CURRENT_TICKET"] = {}
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
+
 
 @update_prompt
 def set_task(issue_id):
     global SESSION
     try:
         if issue_id.strip() == "":
-          print ("No issue number entered")
-          issue_id = select_option("issue", get_myissues)
-        res = get_object("issues",issue_id,"id", "subject")
+            print ("No issue number entered")
+            issue_id = select_option("issue", get_myissues)
+        res = get_object("issues", issue_id, "id", "subject")
         if res != {}:
-          try:
-              tmp_current = SESSION["CURRENT_TICKET"]
-          except Exception:
-              tmp_current = {}
-          try:
-              tmp_previous = SESSION["PREVIOUS_TICKET"]
-          except Exception:
-              tmp_previous = {}
-          if tmp_current != {} and \
-          (res["issue"]["id"] != tmp_current["id"]):
-              SESSION["PREVIOUS_TICKET"]=tmp_current
-              end_task("Change of activity")
-          if tmp_current == {} and tmp_previous.has_key("id") and\
-          (res["issue"]["id"] == tmp_previous["id"]):
-              SESSION["PREVIOUS_TICKET"]={}
-          SESSION["CURRENT_TICKET"] = res["issue"]
-          SESSION["LAST_TIME"] = time.time()
+            try:
+                tmp_current = SESSION["CURRENT_TICKET"]
+            except Exception:
+                tmp_current = {}
+            try:
+                tmp_previous = SESSION["PREVIOUS_TICKET"]
+            except Exception:
+                tmp_previous = {}
+            if tmp_current != {} and \
+                    (res["issue"]["id"] != tmp_current["id"]):
+                SESSION["PREVIOUS_TICKET"] = tmp_current
+                end_task("Change of activity")
+            if tmp_current == {} and "id" in tmp_previous and\
+                    (res["issue"]["id"] == tmp_previous["id"]):
+                SESSION["PREVIOUS_TICKET"] = {}
+            SESSION["CURRENT_TICKET"] = res["issue"]
+            SESSION["LAST_TIME"] = time.time()
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
+
 
 @update_prompt
 def search_task(filters):
@@ -862,96 +868,100 @@ def search_task(filters):
             project_id = None
 
         issue_id = select_option("issue", get_issues,
-          assigned_to_id=None, status="open", project_id=project_id,filters=filters)
-        res = get_object("issues",issue_id,"id", "subject")
+                                 assigned_to_id=None, status="open",
+                                 project_id=project_id, filters=filters)
+        res = get_object("issues", issue_id, "id", "subject")
         if res != {}:
-          try:
-              tmp_current = SESSION["CURRENT_TICKET"]
-          except Exception:
-              tmp_current = {}
-          try:
-              tmp_previous = SESSION["PREVIOUS_TICKET"]
-          except Exception:
-              tmp_previous = {}
-          if tmp_current != {} and \
-          (res["issue"]["id"] != tmp_current["id"]):
-              SESSION["PREVIOUS_TICKET"]=tmp_current
-              end_task("Change of activity")
-          if tmp_current == {} and \
-          (res["issue"]["id"] == tmp_previous["id"]):
-              SESSION["PREVIOUS_TICKET"]={}
-          SESSION["CURRENT_TICKET"] = res["issue"]
-          SESSION["LAST_TIME"] = time.time()
+            try:
+                tmp_current = SESSION["CURRENT_TICKET"]
+            except Exception:
+                tmp_current = {}
+            try:
+                tmp_previous = SESSION["PREVIOUS_TICKET"]
+            except Exception:
+                tmp_previous = {}
+            if tmp_current != {} and \
+                    (res["issue"]["id"] != tmp_current["id"]):
+                SESSION["PREVIOUS_TICKET"] = tmp_current
+                end_task("Change of activity")
+            if tmp_current == {} and \
+                    (res["issue"]["id"] == tmp_previous["id"]):
+                SESSION["PREVIOUS_TICKET"] = {}
+            SESSION["CURRENT_TICKET"] = res["issue"]
+            SESSION["LAST_TIME"] = time.time()
     except CancelException as e:
         print ("Action cancelled")
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
 
+
 @update_prompt
 def previous_task():
     global SESSION
     try:
-      if SESSION.has_key("PREVIOUS_TICKET") \
-              and not SESSION["PREVIOUS_TICKET"]=={}:
-          if not SESSION.has_key("CURRENT_TICKET") \
-                 or SESSION["CURRENT_TICKET"]=={}:
-                     SESSION["CURRENT_TICKET"]=={}
-          tmp_previous = SESSION["PREVIOUS_TICKET"]
-          tmp_current = SESSION["CURRENT_TICKET"]
-          end_task("Change of activity")
-          SESSION["CURRENT_TICKET"] = tmp_previous
-          SESSION["PREVIOUS_TICKET"] = tmp_current
-          SESSION["LAST_TIME"] = time.time()
-          print ("Selected task is %s now" % SESSION["CURRENT_TICKET"]["id"])
-      else:
-        print ("No previous ticket")
+        if "PREVIOUS_TICKET" in SESSION \
+                and not SESSION["PREVIOUS_TICKET"] == {}:
+            if not "CURRENT_TICKET" in SESSION \
+                    or SESSION["CURRENT_TICKET"] == {}:
+                SESSION["CURRENT_TICKET"] == {}
+            tmp_previous = SESSION["PREVIOUS_TICKET"]
+            tmp_current = SESSION["CURRENT_TICKET"]
+            end_task("Change of activity")
+            SESSION["CURRENT_TICKET"] = tmp_previous
+            SESSION["PREVIOUS_TICKET"] = tmp_current
+            SESSION["LAST_TIME"] = time.time()
+            print ("Selected task is %s now" % SESSION["CURRENT_TICKET"]["id"])
+        else:
+            print ("No previous ticket")
     except Exception as e:
         logger.error("Unexpected exception: %s" % e)
+
 
 def update_task(comment):
     global baseurl
     global SESSION
-    c_ticket=SESSION["CURRENT_TICKET"]
+    c_ticket = SESSION["CURRENT_TICKET"]
     try:
-      if c_ticket == {}:
-        print ("No ticket to be updated")
-      else:
-        now = time.time()
-        if comment.strip() == "":
-            comment = get_input("comment")
-        note = get_input("note",multiline=True)
-        c_done_ratio=c_ticket["done_ratio"]
-        done_ratio = get_input("done ratio (current: {0}%)"\
-                .format(c_done_ratio),
-                validator=long,default=c_done_ratio)
+        if c_ticket == {}:
+            print ("No ticket to be updated")
+        else:
+            now = time.time()
+            if comment.strip() == "":
+                comment = get_input("comment")
+            note = get_input("note", multiline=True)
+            c_done_ratio = c_ticket["done_ratio"]
+            done_ratio = get_input("done ratio (current: {0}%)".format(c_done_ratio),
+                                   validator=long,
+                                   default=c_done_ratio)
 
-        estimated_hours = get_from_current_ticket("estimated_hours")
-        estimated_hours = get_input("estimated hours (current: {0})"\
-                .format(estimated_hours),validator=long,default=estimated_hours)
-        due_date = get_from_current_ticket("due_date")
-        due_date = get_input("due date (YYYY-mm-dd or today; current: {0})"\
-                .format(due_date),validator=validate_date,default=due_date)
-        if due_date == "today":
-          n = datetime.datetime.now()
-          due_date = "{0:04d}-{1:02d}-{2:02d}".format(n.year,n.month,n.day)
+            estimated_hours = get_from_current_ticket("estimated_hours")
+            estimated_hours = get_input("estimated hours (current: {0})".format(estimated_hours),
+                                        validator=long, default=estimated_hours)
+            due_date = get_from_current_ticket("due_date")
+            due_date = get_input("due date (YYYY-mm-dd or today; current: {0})".format(due_date),
+                                 validator=validate_date,
+                                 default=due_date)
+            if due_date == "today":
+                n = datetime.datetime.now()
+                due_date = "{0:04d}-{1:02d}-{2:02d}".format(n.year, n.month, n.day)
 
-        activity_id = select_option("activity", get_activities)
-        issue_id = c_ticket["id"]
-        update_issue(issue_id, comment,
-                note,done_ratio,due_date,estimated_hours)
-        hours = (now - SESSION["LAST_TIME"]) / 3600.0
-        create_time_entry(issue_id, activity_id, hours, comment)
-        SESSION["LAST_TIME"] = now
+            activity_id = select_option("activity", get_activities)
+            issue_id = c_ticket["id"]
+            update_issue(issue_id, comment,
+                         note, done_ratio, due_date, estimated_hours)
+            hours = (now - SESSION["LAST_TIME"]) / 3600.0
+            create_time_entry(issue_id, activity_id, hours, comment)
+            SESSION["LAST_TIME"] = now
 
-        if done_ratio != "":
-            c_ticket["done_ratio"] = done_ratio
-        if estimated_hours != "":
-            c_ticket["estimated_hours"] = estimated_hours
-        if due_date != "":
-            c_ticket["due_date"] = due_date
+            if done_ratio != "":
+                c_ticket["done_ratio"] = done_ratio
+            if estimated_hours != "":
+                c_ticket["estimated_hours"] = estimated_hours
+            if due_date != "":
+                c_ticket["due_date"] = due_date
 
-        print ("Ticket URL: %s/issues/%s"\
-                  % (baseurl,get_from_current_ticket("id")))
+            print ("Ticket URL: %s/issues/%s"
+                   % (baseurl, get_from_current_ticket("id")))
 
     except CancelException as e:
         print ("Action cancelled")
@@ -979,6 +989,7 @@ class TimeThread(threading.Thread):
             if now > SESSION["LAST_TIME"] + threshold and SESSION["CURRENT_TICKET"]:
                 end_task("Auto end")
         end_task("Auto end. Application closed")
+
 
 class Console(cmd.Cmd):
     """Tracker command processor."""
@@ -1048,28 +1059,28 @@ class Console(cmd.Cmd):
         now = time.time()
         if SESSION["CURRENT_TICKET"] != {}:
             print ("Current ticket Id: %s" % get_from_current_ticket("id"))
-            print ("Current ticket URL: %s/issues/%s"\
-                  % (baseurl, get_from_current_ticket("id")))
+            print ("Current ticket URL: %s/issues/%s"
+                   % (baseurl, get_from_current_ticket("id")))
             print ("Current ticket Subject: %s" % get_from_current_ticket("subject"))
-            print ("Current ticket Estimated hours: %s"\
-                  % get_from_current_ticket("estimated_hours"))
-            print ("Current ticket Due date: %s"\
-                  % get_from_current_ticket("due_date"))
+            print ("Current ticket Estimated hours: %s"
+                   % get_from_current_ticket("estimated_hours"))
+            print ("Current ticket Due date: %s"
+                   % get_from_current_ticket("due_date"))
             print ("Current ticket % done: {0}".format(
-                  get_from_current_ticket("done_ratio")))
+                   get_from_current_ticket("done_ratio")))
         if SESSION["PREVIOUS_TICKET"] != {}:
             print ("")
             p_ticket = SESSION["PREVIOUS_TICKET"]
             print ("Previous ticket Id: %s" % get_from_ticket(p_ticket, "id"))
-            print ("Previous ticket URL: %s/issues/%s"\
-                  % (baseurl, get_from_ticket(p_ticket, "id")))
+            print ("Previous ticket URL: %s/issues/%s"
+                   % (baseurl, get_from_ticket(p_ticket, "id")))
             print ("Previous ticket Subject: %s" % get_from_ticket(p_ticket, "subject"))
-            print ("Previous ticket Estimated hours: %s"\
-                  % get_from_ticket(p_ticket, "estimated_hours"))
-            print ("Previous ticket Due date: %s"\
-                  % get_from_ticket(p_ticket, "due_date"))
-            print ("Previous ticket % done: {0}".format(\
-                  get_from_ticket(p_ticket, "done_ratio")))
+            print ("Previous ticket Estimated hours: %s"
+                   % get_from_ticket(p_ticket, "estimated_hours"))
+            print ("Previous ticket Due date: %s"
+                   % get_from_ticket(p_ticket, "due_date"))
+            print ("Previous ticket % done: {0}".format(
+                   get_from_ticket(p_ticket, "done_ratio")))
         print ("")
         print ("Last update: %s" %
                datetime.datetime.fromtimestamp(
