@@ -4,7 +4,6 @@
 # Maintainer: Pablo Saavedra
 # Contact: saavedra.pablo@gmail.com
 
-import os
 import sys
 import signal
 
@@ -15,10 +14,10 @@ except Exception:
     pass
 
 try:
-  try:
-    import ConfigParser
-  except ImportError:
-    import confiparser.ConfigParser
+    try:
+        import ConfigParser
+    except ImportError:
+        import confiparser.ConfigParser
 except Exception:
     pass
 
@@ -41,22 +40,22 @@ loglevel = 20
 
 console = None
 
-SESSION={}
-SESSION["LAST_TIME"]=time.time()
-SESSION["LAST_ACTIVITY"]=None
+SESSION = {}
+SESSION["LAST_TIME"] = time.time()
+SESSION["LAST_ACTIVITY"] = None
 SESSION["CURRENT_TICKET"] = {}
-SESSION["CURRENT_USER"]={}
-SESSION["PREVIOUS_TICKET"]={}
+SESSION["CURRENT_USER"] = {}
+SESSION["PREVIOUS_TICKET"] = {}
 
-session_file=".redmine_cmd.session"
-sentinel=".end."
-threshold=30*60
-baseurl="https://tracker.host.com"
-default_tracker_id=1
-key="9999999999999999999999999999999999999999"
+session_file = ".redmine_cmd.session"
+sentinel = ".end."
+threshold = 30 * 60
+baseurl = "https://tracker.host.com"
+default_tracker_id = 1
+key = "9999999999999999999999999999999999999999"
 headers = {
-  'User-Agent': 'redmine-cmd',
-  'Content-Type': 'application/json'
+    'User-Agent': 'redmine-cmd',
+    'Content-Type': 'application/json'
 }
 
 
@@ -64,6 +63,7 @@ headers = {
 
 class CancelException(Exception):
     pass
+
 
 def update_prompt(func):
     """
@@ -74,23 +74,25 @@ def update_prompt(func):
         global console
         res = func(*args, **kwargs)
         try:
-          ticket_id = SESSION["CURRENT_TICKET"]["id"]
-          console.prompt = "\033[33;01m[#%s]\033[31;01m>\033[0;0m " % ticket_id
+            ticket_id = SESSION["CURRENT_TICKET"]["id"]
+            console.prompt = "\033[33;01m[#%s]\033[31;01m>\033[0;0m " % ticket_id
         except Exception:
-          console.prompt = console.default_prompt
+            console.prompt = console.default_prompt
         return res
     return inner_decorator
+
 
 def exit():
     global thread
     global session_file
     global SESSION
-    f = open(session_file,'w')
-    json.dump(SESSION,f)
+    f = open(session_file, 'w')
+    json.dump(SESSION, f)
     f.close()
     thread.end = True
     thread.join()
     sys.exit(0)
+
 
 def setup():
     global conffile
@@ -101,52 +103,56 @@ def setup():
     try:
         for o in cfg.options("global"):
             try:
-                value = cfg.get("global",o)
+                value = cfg.get("global", o)
                 if o == "threshold":
                     globals()[o] = int(value)
                 elif o == "default_tracker_id":
                     globals()[o] = int(value)
                 else:
                     globals()[o] = value
-                logger.debug("Setting %s to %s" % (o,value))
+                logger.debug("Setting %s to %s" % (o, value))
             except Exception as e:
-                logger.error("Error parsing %s - %s: %s" % ("global",o,e))
+                logger.error("Error parsing %s - %s: %s" % ("global", o, e))
     except Exception as e:
         logger.error("Raised exception: %s" % e)
 
     try:
-        f = open(session_file,'r')
-        SESSION=json.load(f)
-        SESSION["LAST_TIME"]=time.time()
+        f = open(session_file, 'r')
+        SESSION = json.load(f)
+        SESSION["LAST_TIME"] = time.time()
         logger.info('Saved session loaded')
         f.close()
     except Exception as e:
-        logger.warning(\
-"Session file {0} can not be opened: {1}".format(session_file,e))
+        logger.warning(
+            "Session file {0} can not be opened: {1}".format(session_file, e))
+
 
 def validate_date(date_text):
     try:
         if date_text == "today":
-          return date_text
+            return date_text
         d = datetime.datetime.strptime(date_text, '%Y-%m-%d')
-        return  "{0:04d}-{1:02d}-{2:02d}".format(d.year,d.month,d.day)
+        return "{0:04d}-{1:02d}-{2:02d}".format(d.year, d.month, d.day)
     except ValueError:
         raise ValueError("Incorrect data format, should be YYYY-MM-DD or today")
 
-def get_from_ticket(ticket,attribute):
+
+def get_from_ticket(ticket, attribute):
     t = ticket
-    if ticket and ticket.has_key("issue"):
-        t=ticket["issue"]
+    if ticket and "issue" in ticket:
+        t = ticket["issue"]
     try:
         res = t[attribute]
     except Exception:
         res = ""
     return res
 
+
 def get_from_current_ticket(attribute):
     global SESSION
     c_ticket = SESSION["CURRENT_TICKET"]
-    return get_from_ticket(c_ticket,attribute)
+    return get_from_ticket(c_ticket, attribute)
+
 
 def get_http_requester():
     try:
@@ -159,17 +165,17 @@ def get_http_requester():
 def get_response(method, URL, body=None):
     global headers
     global logger
-    logger.debug("%s: %s" % (method,URL))
+    logger.debug("%s: %s" % (method, URL))
     h = get_http_requester()
-    resp, content = h.request(URL, method, body , headers=headers)
+    resp, content = h.request(URL, method, body, headers=headers)
     logger.debug("resp: %s" % resp)
     logger.debug("content: %s" % content)
-    return resp,content
+    return resp, content
 
 
-def issue_match_with_keywords(issue_dict,filters):
+def issue_match_with_keywords(issue_dict, filters):
     if not filters:
-      return True
+        return True
     for f in filters.split():
         f = slugify(f).lower()
         found = False
@@ -180,24 +186,25 @@ def issue_match_with_keywords(issue_dict,filters):
         if slugify(issue_dict["description"]).lower().find(f) > -1:
             found = True
         if issue_dict.has_key("assigned_to") and \
-        slugify(issue_dict["assigned_to"]["name"]).lower().find(f) > -1:
+                slugify(issue_dict["assigned_to"]["name"]).lower().find(f) > -1:
             found = True
         if issue_dict.has_key("author") and \
-        slugify(issue_dict["author"]["name"]).lower().find(f) > -1:
+                slugify(issue_dict["author"]["name"]).lower().find(f) > -1:
             found = True
         if issue_dict.has_key("status") and \
-        slugify(issue_dict["status"]["name"]).lower().find(f) > -1:
+                slugify(issue_dict["status"]["name"]).lower().find(f) > -1:
             found = True
         if issue_dict.has_key("priority") and \
-        slugify(issue_dict["priority"]["name"]).lower().find(f) > -1:
+                slugify(issue_dict["priority"]["name"]).lower().find(f) > -1:
             found = True
         if issue_dict.has_key("project") and \
-        slugify(issue_dict["project"]["name"]).lower().find(f) > -1:
+                slugify(issue_dict["project"]["name"]).lower().find(f) > -1:
             found = True
 
         if not found:
             return False
     return True
+
 
 def change_issue_status(issue_id,status,comment):
     global baseurl
@@ -205,17 +212,18 @@ def change_issue_status(issue_id,status,comment):
     global headers
     global logger
 
-    json_doc={
-      "issue": {
-        "status_id": status,
-        "notes": "Comment: %s" % comment,
-      }
+    json_doc = {
+        "issue": {
+            "status_id": status,
+            "notes": "Comment: %s" % comment,
+        }
     }
-    params="?key=%s" % (key)
-    URL="%s/issues/%s.json%s" % (baseurl,issue_id,params)
-    json_doc=json.dumps(json_doc)
-    resp,content = get_response("PUT", URL, json_doc)
+    params = "?key=%s" % (key)
+    URL = "%s/issues/%s.json%s" % (baseurl, issue_id, params)
+    json_doc = json.dumps(json_doc)
+    resp, content = get_response("PUT", URL, json_doc)
     print ("Response: %s" % resp["status"])
+
 
 def create_issue(issue_dict):
     global baseurl
@@ -224,42 +232,41 @@ def create_issue(issue_dict):
     global SESSION
     global logger
 
-    params="?key=%s" % (key)
-    createIssueURL="%s/issues.json%s" % (baseurl,params)
-    json_doc=json.dumps(issue_dict)
+    params = "?key=%s" % (key)
+    createIssueURL = "%s/issues.json%s" % (baseurl, params)
+    json_doc = json.dumps(issue_dict)
     logger.debug("Body: %s" % json_doc)
-    resp,content = get_response("POST", createIssueURL, json_doc)
+    resp, content = get_response("POST", createIssueURL, json_doc)
     print ("Response: %s" % resp["status"])
     try:
         return json.loads(content)["issue"]
-    except  Exception:
+    except Exception:
         return None
 
 
-def create_time_entry(issue_id,activity_id,hours,comments):
+def create_time_entry(issue_id, activity_id, hours, comments):
     global SESSION
     global baseurl
     global key
     global headers
     global logger
-    SESSION["LAST_ACTIVITY"]=activity_id
-    json_doc={
-      "time_entry": {
-        "issue_id": issue_id,
-        "hours": hours,
-        "activity_id": activity_id,
-        "comments":comments,
-      }
+    SESSION["LAST_ACTIVITY"] = activity_id
+    json_doc = {
+        "time_entry": {
+            "issue_id": issue_id,
+            "hours": hours,
+            "activity_id": activity_id,
+            "comments": comments,
+        }
     }
-    params="?key=%s" % (key)
-    URL="%s/time_entries.xml%s" % (baseurl,params)
-    json_doc=json.dumps(json_doc)
-    resp,content = get_response("POST", URL, json_doc)
+    params = "?key=%s" % (key)
+    URL = "%s/time_entries.xml%s" % (baseurl, params)
+    json_doc = json.dumps(json_doc)
+    resp, content = get_response("POST", URL, json_doc)
     print ("Response: %s" % resp["status"])
 
 
-def update_issue(issue_id, comment, note,
-        done_ratio,due_date,estimated_hours):
+def update_issue(issue_id, comment, note, done_ratio, due_date, estimated_hours):
     global baseurl
     global key
     global headers
@@ -276,12 +283,12 @@ def update_issue(issue_id, comment, note,
         comment = "Comment: _%s_\n\n" % (comment)
     if note.strip() != "":
         note = "Notes:\n%s" % (note)
-    notes = "%s%s" % (comment,note)
+    notes = "%s%s" % (comment, note)
 
-    json_doc={
-      "issue": {
-        "notes": notes,
-      }
+    json_doc = {
+        "issue": {
+            "notes": notes,
+        }
     }
     if estimated_hours and estimated_hours != "":
         json_doc["issue"]["estimated_hours"] = estimated_hours
@@ -290,19 +297,19 @@ def update_issue(issue_id, comment, note,
     if done_ratio and done_ratio != "":
         json_doc["issue"]["done_ratio"] = done_ratio
     try:
-      params="?key=%s" % (key)
-      URL="%s/issues/%s.json%s" % (baseurl,issue_id,params)
-      json_doc=json.dumps(json_doc)
-      logger.debug("Body: %s" % json_doc)
-      resp,content = get_response("PUT", URL, json_doc)
-      print ("Response: %s" % resp["status"])
-      print (content)
-      try:
-        return json.loads(content)["issue"]
-      except  Exception:
+        params = "?key=%s" % (key)
+        URL = "%s/issues/%s.json%s" % (baseurl, issue_id, params)
+        json_doc = json.dumps(json_doc)
+        logger.debug("Body: %s" % json_doc)
+        resp, content = get_response("PUT", URL, json_doc)
+        print ("Response: %s" % resp["status"])
+        print (content)
+        try:
+            return json.loads(content)["issue"]
+        except Exception:
+            return None
+    except Exception:
         return None
-    except  Exception:
-      return None
 
 
 def get_input(option_name, multiline=False, default=None, validator=None):
@@ -328,9 +335,9 @@ def get_current_user():
     global key
     global logger
     res = {}
-    params="?key=%s" % \
+    params = "?key=%s" % \
         (key)
-    getURL="%s/users/current.json%s" % (baseurl,params)
+    getURL = "%s/users/current.json%s" % (baseurl,params)
     resp, content = get_response("GET", getURL)
     try:
         res = json.loads(content)
@@ -338,7 +345,7 @@ def get_current_user():
         logger.error("Exception: %s" % e)
     return res
 
-def get_object(objects_name,id_,object_key_id, object_key_name):
+def get_object(objects_name, id_, object_key_id, object_key_name):
     global baseurl
     global key
     global headers
@@ -347,18 +354,19 @@ def get_object(objects_name,id_,object_key_id, object_key_name):
     res_object = {}
     output = ""
     print ('''\033[33;01mGetting %s:\033[31;01m>\033[0;0m''' % objects_name)
-    params="?key=%s" % (key)
-    getURL="%s/%s/%s.json%s" % (baseurl,objects_name,id_,params)
+    params = "?key=%s" % (key)
+    getURL = "%s/%s/%s.json%s" % (baseurl, objects_name, id_, params)
     resp, content = get_response("GET", getURL)
     try:
         res_object = json.loads(content)
         o = res_object[objects_name[:-1]]
-        output =  o[object_key_name] + ": " + str(o[object_key_id])
+        output = o[object_key_name] + ": " + str(o[object_key_id])
     except Exception as e:
         logger.error("Exception: %s" % e)
 
     print (output)
     return res_object
+
 
 def get_objects(objects_name,object_key_id, object_key_name):
     global baseurl
@@ -367,26 +375,25 @@ def get_objects(objects_name,object_key_id, object_key_name):
     global SESSION
     limit = 50
     offset = 0
-    options=[]
+    options = []
     default = None
-    print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' \
-            % objects_name)
+    print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % objects_name)
     output = ""
     while True:
-        params="?key=%s&offset=%s&limit=%s" % (key,offset,limit)
-        getURL="%s/%s.json%s" % (baseurl,objects_name,params)
+        params = "?key=%s&offset=%s&limit=%s" % (key, offset, limit)
+        getURL = "%s/%s.json%s" % (baseurl, objects_name, params)
         resp, content = get_response("GET", getURL)
         try:
             received = json.loads(content)
             try:
-              for o in received[objects_name]:
-                output += "; " + o[object_key_name] + ": " + str(o[object_key_id])
-                options.append(int(o[object_key_id]))
+                for o in received[objects_name]:
+                    output += "; " + o[object_key_name] + ": " + str(o[object_key_id])
+                    options.append(int(o[object_key_id]))
             except Exception as e:
-              logger.error("Exception: %s" % e)
-            offset+=limit
-            if len(received[objects_name])<limit:
-                break # no more items to iter
+                logger.error("Exception: %s" % e)
+            offset += limit
+            if len(received[objects_name]) < limit:
+                break  # no more items to iter
         except Exception as e:
             logger.error("Exception: %s" % e)
             break
@@ -409,10 +416,11 @@ def get_objects(objects_name,object_key_id, object_key_name):
     except Exception as e:
         logger.error("Unexpected error: %s" % e)
     try:
-      print (output[2:])
+        print (output[2:])
     except Exception:
-      print (output)
+        print (output)
     return options, default
+
 
 def get_memberships(project_id):
     global baseurl
@@ -421,24 +429,24 @@ def get_memberships(project_id):
     global SESSION
     limit = 50
     offset = 0
-    options=[]
+    options = []
     default = None
     print ('''\033[33;01mAvailable members:\033[31;01m>\033[0;0m''')
     output = ""
     while True:
-        params="?key=%s&offset=%s&limit=%s" % (key,offset,limit)
-        getURL="%s/projects/%s/memberships.json%s" % (baseurl,str(project_id),params)
+        params = "?key=%s&offset=%s&limit=%s" % (key, offset, limit)
+        getURL = "%s/projects/%s/memberships.json%s" % (baseurl, str(project_id), params)
         resp, content = get_response("GET", getURL)
         try:
             received = json.loads(content)
             try:
-              for o in received["memberships"]:
-                  output += "; %(name)s: %(id)s" % o["user"]
-                  options.append(int(o["user"]["id"]))
+                for o in received["memberships"]:
+                    output += "; %(name)s: %(id)s" % o["user"]
+                    options.append(int(o["user"]["id"]))
             except Exception as e:
-              logger.error("Exception: %s" % e)
-            offset+=limit
-            if len(received['memberships'])<limit:
+                logger.error("Exception: %s" % e)
+            offset += limit
+            if len(received['memberships']) < limit:
                 break # no more items to iter
         except Exception as e:
             logger.error("Exception: %s" % e)
@@ -459,36 +467,38 @@ def get_memberships(project_id):
     except Exception as e:
         logger.error("Unexpected error: %s" % e)
     try:
-      print (output[2:])
+        print (output[2:])
     except Exception:
-      print (output)
+        print (output)
     return options, default
 
+
 def get_projects():
-    return get_objects("projects","id","name")
+    return get_objects("projects", "id", "name")
+
 
 def get_users():
-    return get_objects("users","id","login")
+    return get_objects("users", "id", "login")
 
 def get_issues(assigned_to_id="me", status="open", project_id=None, filters=None):
     global baseurl
     global key
     global logger
-    options=[]
+    options = []
     limit = 100
     offset = 0
     default = None
     if assigned_to_id:
-      print ('''\033[33;01m%s issues assigned to %s:\033[31;01m>\033[0;0m''' \
-            % (status,assigned_to_id))
+        print ('''\033[33;01m%s issues assigned to %s:\033[31;01m>\033[0;0m''' \
+            % (status, assigned_to_id))
     else:
-      print ('''\033[33;01mIssues %s:\033[31;01m>\033[0;0m''' \
+        print ('''\033[33;01mIssues %s:\033[31;01m>\033[0;0m''' \
             % (status))
 
     output = []
     outputt = tt.Texttable()
     outputt.set_deco(tt.Texttable.HEADER)
-    outputt.set_cols_width([7,6,6,10,10,8,25])
+    outputt.set_cols_width([7, 6, 6, 10, 10, 8, 25])
 
     outputt.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
     outputt.set_cols_valign(["t", "t", "t", "t", "t", "t", "t"])
@@ -922,9 +932,9 @@ def update_task(comment):
         update_issue(issue_id, comment,
                 note,done_ratio,due_date,estimated_hours)
         hours = (now - SESSION["LAST_TIME"]) / 3600.0
-        create_time_entry(issue_id,activity_id,hours,comment)
+        create_time_entry(issue_id, activity_id, hours, comment)
         SESSION["LAST_TIME"] = now
-        
+
         if done_ratio != "":
             c_ticket["done_ratio"] = done_ratio
         if estimated_hours != "":
@@ -943,24 +953,24 @@ def update_task(comment):
 
 ################################################################################
 class TimeThread(threading.Thread):
-      global end_task
-      global SESSION
-      global threshold
-      global logger
- 
-      def __init__(self, console):
-          threading.Thread.__init__(self)
-          self.end = False
-          self.console = console
+    global end_task
+    global SESSION
+    global threshold
+    global logger
 
-      def run(self):
-          while not self.end:
-              logger.debug("Thread running ... ")
-              time.sleep(6)
-              now = time.time()
-              if now > SESSION["LAST_TIME"] + threshold and SESSION["CURRENT_TICKET"]:
-                  end_task("Auto end")
-          end_task("Auto end. Application closed")
+    def __init__(self, console):
+        threading.Thread.__init__(self)
+        self.end = False
+        self.console = console
+
+    def run(self):
+        while not self.end:
+            logger.debug("Thread running ... ")
+            time.sleep(6)
+            now = time.time()
+            if now > SESSION["LAST_TIME"] + threshold and SESSION["CURRENT_TICKET"]:
+                end_task("Auto end")
+        end_task("Auto end. Application closed")
 
 class Console(cmd.Cmd):
     """Tracker command processor."""
@@ -975,7 +985,7 @@ class Console(cmd.Cmd):
         View information about the current task"""
         global SESSION
         print (json.dumps(SESSION["CURRENT_TICKET"], sort_keys=True,
-            indent=4, separators=(',', ': ')))
+               indent=4, separators=(',', ': ')))
 
     def do_viewtasks(self, args_line):
         """viewtasks
@@ -989,7 +999,7 @@ class Console(cmd.Cmd):
             status = args[1]
         except:
             status = "open"
-        get_issues(user,status)
+        get_issues(user, status)
 
     def do_viewtimes(self, user):
         """viewtimes
@@ -1042,26 +1052,26 @@ class Console(cmd.Cmd):
         if SESSION["PREVIOUS_TICKET"] != {}:
           print ("")
           p_ticket = SESSION["PREVIOUS_TICKET"]
-          print ("Previous ticket Id: %s" % get_from_ticket(p_ticket,"id"))
+          print ("Previous ticket Id: %s" % get_from_ticket(p_ticket, "id"))
           print ("Previous ticket URL: %s/issues/%s"\
-                  % (baseurl,get_from_ticket(p_ticket,"id")))
+                  % (baseurl,get_from_ticket(p_ticket, "id")))
           print ("Previous ticket Subject: %s" % get_from_ticket(p_ticket,"subject"))
           print ("Previous ticket Estimated hours: %s"\
-                  % get_from_ticket(p_ticket,"estimated_hours"))
+                  % get_from_ticket(p_ticket, "estimated_hours"))
           print ("Previous ticket Due date: %s"\
-                  % get_from_ticket(p_ticket,"due_date"))
+                  % get_from_ticket(p_ticket, "due_date"))
           print ("Previous ticket % done: {0}".format(\
-                  get_from_ticket(p_ticket,"done_ratio")))
+                  get_from_ticket(p_ticket, "done_ratio")))
         print ("")
         print ("Last update: %s" %\
 datetime.datetime.fromtimestamp(SESSION["LAST_TIME"]).isoformat(' '))
         print ("Auto end: %s seconds" % ((SESSION["LAST_TIME"] + threshold) - now))
-    
+
     def do_updatetask(self, comment):
         """updatetask [comment]
         Update task"""
         update_task(comment)
-    
+
     def do_endtask(self, comment):
         """endtask [comment]
         End task"""
@@ -1076,13 +1086,13 @@ datetime.datetime.fromtimestamp(SESSION["LAST_TIME"]).isoformat(' '))
         """changetaskstatus [comment]
         Change status of the task"""
         change_task_status(comment)
-    
+
     def do_exit(self, line):
         """exit
         End the program"""
         print ("Ending!. Sending kill to threads...")
         exit()
-     
+
     def do_EOF(self, line):
         """EOF
         End the program"""
@@ -1120,7 +1130,7 @@ datetime.datetime.fromtimestamp(SESSION["LAST_TIME"]).isoformat(' '))
             status = args[1]
         except:
             status = "open"
-        get_issues(user,status)
+        get_issues(user, status)
 
     def do_up(self, comment):
         """updatetask [comment]
@@ -1169,6 +1179,7 @@ logger.setLevel(int(loglevel))
 logger.debug("Default encoding: %s" % sys.getdefaultencoding())
 setup()
 
+
 def signal_int_handler(signal, frame):
     print ("Ctrl-c received! Sending kill to threads...")
     exit()
@@ -1176,20 +1187,17 @@ signal.signal(signal.SIGINT, signal_int_handler)
 
 if __name__ == '__main__':
     try:
-      SESSION["CURRENT_USER"] = get_current_user()["user"]
+        SESSION["CURRENT_USER"] = get_current_user()["user"]
     except Exception:
-      pass
+        pass
     console = Console()
     console.default_prompt = "\033[33;01mTracker\033[31;01m>\033[0;0m "
     try:
-       ticket_id = SESSION["CURRENT_TICKET"]["id"]
-       console.prompt = "\033[33;01m[#%s]\033[31;01m>\033[0;0m " % ticket_id
+        ticket_id = SESSION["CURRENT_TICKET"]["id"]
+        console.prompt = "\033[33;01m[#%s]\033[31;01m>\033[0;0m " % ticket_id
     except Exception:
-       console.prompt = console.default_prompt
+        console.prompt = console.default_prompt
     thread = TimeThread(console)
     thread.start()
     console.cmdloop()
 sys.exit(0)
-
-
-
