@@ -185,19 +185,19 @@ def issue_match_with_keywords(issue_dict, filters):
             found = True
         if slugify(issue_dict["description"]).lower().find(f) > -1:
             found = True
-        if issue_dict.has_key("assigned_to") and \
+        if "assigned_to" in issue_dict and \
                 slugify(issue_dict["assigned_to"]["name"]).lower().find(f) > -1:
             found = True
-        if issue_dict.has_key("author") and \
+        if "author" in issue_dict and \
                 slugify(issue_dict["author"]["name"]).lower().find(f) > -1:
             found = True
-        if issue_dict.has_key("status") and \
+        if "status" in issue_dict and \
                 slugify(issue_dict["status"]["name"]).lower().find(f) > -1:
             found = True
-        if issue_dict.has_key("priority") and \
+        if "priority" in issue_dict and \
                 slugify(issue_dict["priority"]["name"]).lower().find(f) > -1:
             found = True
-        if issue_dict.has_key("project") and \
+        if "project" in issue_dict and \
                 slugify(issue_dict["project"]["name"]).lower().find(f) > -1:
             found = True
 
@@ -206,7 +206,7 @@ def issue_match_with_keywords(issue_dict, filters):
     return True
 
 
-def change_issue_status(issue_id,status,comment):
+def change_issue_status(issue_id, status, comment):
     global baseurl
     global key
     global headers
@@ -315,8 +315,8 @@ def update_issue(issue_id, comment, note, done_ratio, due_date, estimated_hours)
 def get_input(option_name, multiline=False, default=None, validator=None):
     global sentinel
     if multiline:
-        print ("\033[35;01mEnter %s (type %s to end):\033[0;0m" \
-                % (option_name,sentinel))
+        print ("\033[35;01mEnter %s (type %s to end):\033[0;0m"
+               % (option_name, sentinel))
         res = '\n'.join(iter(raw_input, sentinel))
     else:
         res = raw_input('\033[35;01mEnter %s: \033[0;0m' % option_name)
@@ -337,13 +337,14 @@ def get_current_user():
     res = {}
     params = "?key=%s" % \
         (key)
-    getURL = "%s/users/current.json%s" % (baseurl,params)
+    getURL = "%s/users/current.json%s" % (baseurl, params)
     resp, content = get_response("GET", getURL)
     try:
         res = json.loads(content)
     except Exception as e:
         logger.error("Exception: %s" % e)
     return res
+
 
 def get_object(objects_name, id_, object_key_id, object_key_name):
     global baseurl
@@ -368,7 +369,7 @@ def get_object(objects_name, id_, object_key_id, object_key_name):
     return res_object
 
 
-def get_objects(objects_name,object_key_id, object_key_name):
+def get_objects(objects_name, object_key_id, object_key_name):
     global baseurl
     global key
     global headers
@@ -401,15 +402,17 @@ def get_objects(objects_name,object_key_id, object_key_name):
         current_ticket_related_key = objects_name[:-1]
         if current_ticket_related_key == "user":
             current_ticket_related_key = "assigned_to"
-        if SESSION["CURRENT_TICKET"] and not( SESSION["CURRENT_TICKET"] == {}):
-            output += "; Default - %s: %s" \
-% (SESSION["CURRENT_TICKET"][current_ticket_related_key]["name"], SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
+        if SESSION["CURRENT_TICKET"] and not(SESSION["CURRENT_TICKET"] == {}):
+            output += "; Default - %s: %s" % (
+                SESSION["CURRENT_TICKET"][current_ticket_related_key]["name"],
+                SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
             options.append(SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
             default = SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"]
         else:
             if objects_name[:-1] == "user":
-                output += "; Default - %s: %s" \
-% (SESSION["CURRENT_USER"]["firstname"], SESSION["CURRENT_USER"]["id"])
+                output += "; Default - %s: %s" % (
+                    SESSION["CURRENT_USER"]["firstname"],
+                    SESSION["CURRENT_USER"]["id"])
                 options.append(SESSION["CURRENT_USER"]["id"])
                 default = SESSION["CURRENT_USER"]["id"]
 
@@ -447,20 +450,22 @@ def get_memberships(project_id):
                 logger.error("Exception: %s" % e)
             offset += limit
             if len(received['memberships']) < limit:
-                break # no more items to iter
+                break  # no more items to iter
         except Exception as e:
             logger.error("Exception: %s" % e)
             break
     try:
         current_ticket_related_key = "assigned_to"
-        if SESSION["CURRENT_TICKET"] and not( SESSION["CURRENT_TICKET"] == {}):
-            output += "; Default - %s: %s" \
-% (SESSION["CURRENT_TICKET"][current_ticket_related_key]["name"], SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
+        if SESSION["CURRENT_TICKET"] and not(SESSION["CURRENT_TICKET"] == {}):
+            output += "; Default - %s: %s" % (
+                SESSION["CURRENT_TICKET"][current_ticket_related_key]["name"],
+                SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
             options.append(SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
             default = SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"]
         else:
-            output += "; Default - %s: %s" \
-% (SESSION["CURRENT_USER"]["firstname"], SESSION["CURRENT_USER"]["id"])
+            output += "; Default - %s: %s" % (
+                SESSION["CURRENT_USER"]["firstname"],
+                SESSION["CURRENT_USER"]["id"])
             options.append(SESSION["CURRENT_USER"]["id"])
             default = SESSION["CURRENT_USER"]["id"]
 
@@ -489,11 +494,11 @@ def get_issues(assigned_to_id="me", status="open", project_id=None, filters=None
     offset = 0
     default = None
     if assigned_to_id:
-        print ('''\033[33;01m%s issues assigned to %s:\033[31;01m>\033[0;0m''' \
-            % (status, assigned_to_id))
+        print ('''\033[33;01m%s issues assigned to %s:\033[31;01m>\033[0;0m'''
+               % (status, assigned_to_id))
     else:
-        print ('''\033[33;01mIssues %s:\033[31;01m>\033[0;0m''' \
-            % (status))
+        print ('''\033[33;01mIssues %s:\033[31;01m>\033[0;0m'''
+               % (status))
 
     output = []
     outputt = tt.Texttable()
@@ -502,28 +507,28 @@ def get_issues(assigned_to_id="me", status="open", project_id=None, filters=None
 
     outputt.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
     outputt.set_cols_valign(["t", "t", "t", "t", "t", "t", "t"])
-    output.append( [
-"#id",
-"prior",
-"status",
-"updated_on",
-"due_date",
-"project",
-"subject"
-])
+    output.append([
+        "#id",
+        "prior",
+        "status",
+        "updated_on",
+        "due_date",
+        "project",
+        "subject"
+    ])
 
-    project_id_param=""
+    project_id_param = ""
     if project_id:
-        project_id_param="&project_id=%s" % project_id
+        project_id_param = "&project_id=%s" % project_id
 
-    assigned_to_id_param=""
+    assigned_to_id_param = ""
     if assigned_to_id:
-        assigned_to_id_param="&assigned_to_id=%s" % assigned_to_id
+        assigned_to_id_param = "&assigned_to_id=%s" % assigned_to_id
     try:
       while True:
-        params="?key=%s%s&offset=%s&limit=%s&status_id=%s%s&sort=priority:desc,updated_on:desc" % \
-            (key,project_id_param,offset,limit,status,assigned_to_id_param)
-        getURL="%s/issues.json%s" % (baseurl,params)
+        params = "?key=%s%s&offset=%s&limit=%s&status_id=%s%s&sort=priority:desc,updated_on:desc" % \
+            (key, project_id_param, offset, limit, status, assigned_to_id_param)
+        getURL = "%s/issues.json%s" % (baseurl,params)
         resp, content = get_response("GET", getURL)
         if filters:
             print "... ... ..."
@@ -553,63 +558,65 @@ def get_issues(assigned_to_id="me", status="open", project_id=None, filters=None
                     ])
                     options.append(int(p["id"]))
             except Exception as e:
-              logger.error("Exception processing issue %s: %s" % (t_id,e))
-              pass
+                logger.error("Exception processing issue %s: %s" % (t_id, e))
+                pass
             offset+=limit
-            if len(received["issues"])<limit:
-                break # no more items to iter
+            if len(received["issues"]) < limit:
+                break  # no more items to iter
         except Exception as e:
             logger.error("Exception loading JSON from %s: %s" % (getURL, e))
             break
 
       try:
-        if SESSION["CURRENT_TICKET"] and not( SESSION["CURRENT_TICKET"] == {}):
-            options.append(SESSION["CURRENT_TICKET"]["id"])
-            default = SESSION["CURRENT_TICKET"]["id"]
+          if SESSION["CURRENT_TICKET"] and not( SESSION["CURRENT_TICKET"] == {}):
+              options.append(SESSION["CURRENT_TICKET"]["id"])
+              default = SESSION["CURRENT_TICKET"]["id"]
       except Exception as e:
-        logger.error("Error getting the current ticket: %s" % e)
+          logger.error("Error getting the current ticket: %s" % e)
     except Exception as e:
         logger.error("Unexpected error getting issues: %s" % e)
     outputt.add_rows(output)
     print outputt.draw() + "\n"
     return options, default
 
+
 def get_myissues():
     return get_issues()
+
 
 def get_time_entries(user_id=None):
     global baseurl
     global key
     global logger
-    options=[]
+    options = []
     limit = 100
     offset = 0
     default = None
     print ('''\033[33;01mTime entries logged:\033[31;01m>\033[0;0m''')
     output = ""
-    params="?key=%s&offset=%s&limit=%s" % \
-        (key,offset,limit)
-    getURL="%s/time_entries.json%s" % (baseurl,params)
+    params = "?key=%s&offset=%s&limit=%s" % (key, offset, limit)
+    getURL = "%s/time_entries.json%s" % (baseurl, params)
     resp, content = get_response("GET", getURL)
     try:
         received = json.loads(content)
         try:
-          for p in received["time_entries"]:
-            if not user_id or p["user"]["id"] == int(user_id):
-                output += \
+            for p in received["time_entries"]:
+                if not user_id or p["user"]["id"] == int(user_id):
+                    output += \
                   str(p["spent_on"]) \
                   + " - " + str(p["project"]["name"]) \
                   + " - " + str(p["activity"]["name"]) \
                   + " - " + str(p["user"]["name"]) \
                   + " - " + str(p["hours"]) \
                   + " - " + str(p["comments"]) + "\n"
-                options.append(int(p["id"]))
+                    options.append(int(p["id"]))
         except Exception as e:
-          logger.error("Exception: %s" % e)
+            logger.error("Exception: %s" % e)
     except Exception as e:
         logger.error("Exception: %s" % e)
     print (output)
     return options, default
+
 
 def get_activities(quiet=False):
     global conffile
@@ -630,7 +637,7 @@ def get_activities(quiet=False):
                     if not default:
                         default = int(value)
                     value = default
-                output += "%s: %s\n" % (o,value)
+                output += "%s: %s\n" % (o, value)
                 options.append(int(value))
             except Exception as e:
                 logger.error("Error parsing %s - %s: %s" % ("activities",o,e))
@@ -690,19 +697,20 @@ def get_trackers():
     print (output)
     return options, default
 
+
 def select_option(option_name, get_options, **kwargs):
     option = None
-    options,default = get_options(**kwargs)
+    options, default = get_options(**kwargs)
     # print (options)
     options.append(-1)
     while option not in options:
         try:
-          option = int(raw_input('\033[35;01mSelect %s (set -1 to cancel): \033[0;0m' % option_name))
+            option = int(raw_input('\033[35;01mSelect %s (set -1 to cancel): \033[0;0m' % option_name))
         except Exception:
-          option = default
+            option = default
     if option == -1:
         raise CancelException()
-    print ("Selected %s: %s" % (option_name,option))
+    print ("Selected %s: %s" % (option_name, option))
     return option
 
 
@@ -1036,35 +1044,37 @@ class Console(cmd.Cmd):
         print ("Key: ..." + str(key)[-5:])
         print ("Threshold: %s seconds" % threshold)
         print ("User info: " + json.dumps(SESSION["CURRENT_USER"], sort_keys=True,
-            indent=4, separators=(',', ': ')))
+               indent=4, separators=(',', ': ')))
         now = time.time()
         if SESSION["CURRENT_TICKET"] != {}:
-          print ("Current ticket Id: %s" % get_from_current_ticket("id"))
-          print ("Current ticket URL: %s/issues/%s"\
-                  % (baseurl,get_from_current_ticket("id")))
-          print ("Current ticket Subject: %s" % get_from_current_ticket("subject"))
-          print ("Current ticket Estimated hours: %s"\
+            print ("Current ticket Id: %s" % get_from_current_ticket("id"))
+            print ("Current ticket URL: %s/issues/%s"\
+                  % (baseurl, get_from_current_ticket("id")))
+            print ("Current ticket Subject: %s" % get_from_current_ticket("subject"))
+            print ("Current ticket Estimated hours: %s"\
                   % get_from_current_ticket("estimated_hours"))
-          print ("Current ticket Due date: %s"\
+            print ("Current ticket Due date: %s"\
                   % get_from_current_ticket("due_date"))
-          print ("Current ticket % done: {0}".format(
+            print ("Current ticket % done: {0}".format(
                   get_from_current_ticket("done_ratio")))
         if SESSION["PREVIOUS_TICKET"] != {}:
-          print ("")
-          p_ticket = SESSION["PREVIOUS_TICKET"]
-          print ("Previous ticket Id: %s" % get_from_ticket(p_ticket, "id"))
-          print ("Previous ticket URL: %s/issues/%s"\
-                  % (baseurl,get_from_ticket(p_ticket, "id")))
-          print ("Previous ticket Subject: %s" % get_from_ticket(p_ticket,"subject"))
-          print ("Previous ticket Estimated hours: %s"\
+            print ("")
+            p_ticket = SESSION["PREVIOUS_TICKET"]
+            print ("Previous ticket Id: %s" % get_from_ticket(p_ticket, "id"))
+            print ("Previous ticket URL: %s/issues/%s"\
+                  % (baseurl, get_from_ticket(p_ticket, "id")))
+            print ("Previous ticket Subject: %s" % get_from_ticket(p_ticket, "subject"))
+            print ("Previous ticket Estimated hours: %s"\
                   % get_from_ticket(p_ticket, "estimated_hours"))
-          print ("Previous ticket Due date: %s"\
+            print ("Previous ticket Due date: %s"\
                   % get_from_ticket(p_ticket, "due_date"))
-          print ("Previous ticket % done: {0}".format(\
+            print ("Previous ticket % done: {0}".format(\
                   get_from_ticket(p_ticket, "done_ratio")))
         print ("")
-        print ("Last update: %s" %\
-datetime.datetime.fromtimestamp(SESSION["LAST_TIME"]).isoformat(' '))
+        print ("Last update: %s" %
+               datetime.datetime.fromtimestamp(
+                   SESSION["LAST_TIME"]).isoformat(' ')
+               )
         print ("Auto end: %s seconds" % ((SESSION["LAST_TIME"] + threshold) - now))
 
     def do_updatetask(self, comment):
@@ -1148,17 +1158,16 @@ datetime.datetime.fromtimestamp(SESSION["LAST_TIME"]).isoformat(' '))
         change_task_status(comment)
 
 
-
 # command line options parser ##################################################
 parser = OptionParser()
 parser.add_option("-c", "--conffile", dest="conffile", default=conffile,
                   help="Conffile (default: %s)" % conffile)
 parser.add_option("-l", "--logfile",
-        dest="logfile", help="Log file (default: %s)" % logfile,
-        default=logfile)
+                  dest="logfile", help="Log file (default: %s)" % logfile,
+                  default=logfile)
 parser.add_option("--loglevel",
-        dest="loglevel", help="Log level (default: %s)" % loglevel,
-        default=loglevel)
+                  dest="loglevel", help="Log level (default: %s)" % loglevel,
+                  default=loglevel)
 (options, args) = parser.parse_args()
 
 logfile = options.logfile
