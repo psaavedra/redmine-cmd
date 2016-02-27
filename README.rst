@@ -35,7 +35,7 @@ Options::
 
 For example::
 
-  redmine-cmd --loglevel=10 -c ./redmine.cfg
+  redmine-cmd --loglevel=20 -c ./redmine.cfg
 
 ; where `./redmine.cfg` looks like::
 
