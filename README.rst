@@ -7,8 +7,17 @@ A Remote CMD for Redmine based on REST/API
 Installation
 ------------
 
-pip install redmine-cmd
+::
 
+  pip install redmine-cmd
+
+
+Upgrading
+---------
+
+::
+  
+  pip install --upgrade redmine-cmd
 
 Usage
 -----
