@@ -2,7 +2,7 @@
 redmine-cmd
 ===========
 
-A Remote CMD for Redmine based on REST/API
+A Remote console for Redmine based on REST/API and time-tracking system
 
 Installation
 ------------
