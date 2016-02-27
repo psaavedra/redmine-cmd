@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
-version = "1.0.0"
+version = "1.0.1"
 
 long_description = ""
 try:
-    long_description = file('README.md').read()
+    long_description = file('README.rst').read()
 except Exception:
     pass
 

@@ -24,6 +24,22 @@ Options::
                         Log file (default: /dev/stdout)
   --loglevel=LOGLEVEL   Log level (default: 20)
 
+For example::
+
+  redmine-cmd --loglevel=10 -c ./redmine.cfg
+
+; where `./redmine.cfg` looks like::
+
+  [global]
+  threshold=3600
+  baseurl=https://redmine.myhost.domain
+  sentinel=.
+  default_time_entry_activitiy = 8
+  # See key in https://tracker.interoud.com/my/account
+  key=5174044140444ffee5dd17922228d882166666b5
+  session_file=.redmine_cmd_.session
+
+
 Usage of the interactive shell
 ------------------------------
 
