@@ -42,7 +42,7 @@ setup(
 
     download_url='https://github.com/psaavedra/redmine-cmd/zipball/master',
     classifiers=[
-        "Development Status :: 2 - Beta",
+        "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
