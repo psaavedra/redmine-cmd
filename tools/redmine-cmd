@@ -47,11 +47,11 @@ SESSION["CURRENT_TICKET"] = {}
 SESSION["CURRENT_USER"] = {}
 SESSION["PREVIOUS_TICKET"] = {}
 
+default_time_entry_activitiy = 1
 session_file = ".redmine_cmd.session"
 sentinel = ".end."
 threshold = 30 * 60
 baseurl = "https://tracker.host.com"
-default_tracker_id = 1
 key = "9999999999999999999999999999999999999999"
 headers = {
     'User-Agent': 'redmine-cmd',
@@ -106,7 +106,7 @@ def setup():
                 value = cfg.get("global", o)
                 if o == "threshold":
                     globals()[o] = int(value)
-                elif o == "default_tracker_id":
+                elif o == "default_time_entry_activitiy":
                     globals()[o] = int(value)
                 else:
                     globals()[o] = value
@@ -369,7 +369,7 @@ def get_object(objects_name, id_, object_key_id, object_key_name):
     return res_object
 
 
-def get_objects(objects_name, object_key_id, object_key_name):
+def get_objects(objects_name, object_key_id, object_key_name, quiet=False):
     global baseurl
     global key
     global headers
@@ -378,7 +378,11 @@ def get_objects(objects_name, object_key_id, object_key_name):
     offset = 0
     options = []
     default = None
-    print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % objects_name)
+    objects_basename = objects_name.rsplit("/")[-1]
+    # for enumerations/time_entry_activities is time_entry_activities
+
+    if not quiet:
+        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % objects_name)
     output = ""
     while True:
         params = "?key=%s&offset=%s&limit=%s" % (key, offset, limit)
@@ -387,22 +391,26 @@ def get_objects(objects_name, object_key_id, object_key_name):
         try:
             received = json.loads(content)
             try:
-                for o in received[objects_name]:
+                for o in received[objects_basename]:
                     output += "; " + o[object_key_name] + ": " + str(o[object_key_id])
                     options.append(int(o[object_key_id]))
             except Exception as e:
                 logger.error("Exception: %s" % e)
             offset += limit
-            if len(received[objects_name]) < limit:
+            if len(received[objects_basename]) < limit:
                 break  # no more items to iter
         except Exception as e:
             logger.error("Exception: %s" % e)
             break
     try:
-        current_ticket_related_key = objects_name[:-1]
+        current_ticket_related_key = objects_basename[:-1]
         if current_ticket_related_key == "user":
             current_ticket_related_key = "assigned_to"
-        if SESSION["CURRENT_TICKET"] and not(SESSION["CURRENT_TICKET"] == {}):
+        if current_ticket_related_key == "issue_statuse":
+            current_ticket_related_key = "status"
+
+        if SESSION["CURRENT_TICKET"] and SESSION["CURRENT_TICKET"] != {}\
+                and current_ticket_related_key in SESSION["CURRENT_TICKET"]:
             output += "; Default - %s: %s" % (
                 SESSION["CURRENT_TICKET"][current_ticket_related_key]["name"],
                 SESSION["CURRENT_TICKET"][current_ticket_related_key]["id"])
@@ -418,10 +426,11 @@ def get_objects(objects_name, object_key_id, object_key_name):
 
     except Exception as e:
         logger.error("Unexpected error: %s" % e)
-    try:
-        print (output[2:])
-    except Exception:
-        print (output)
+    if not quiet:
+        try:
+            print (output[2:])
+        except Exception:
+            print (output)
     return options, default
 
 
@@ -620,84 +629,25 @@ def get_time_entries(user_id=None):
 
 
 def get_activities(quiet=False):
-    global conffile
-    global SESSION
-    output = ""
-    options = []
-    default = SESSION["LAST_ACTIVITY"]
-    if not quiet:
-        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m'''
-               % "activities")
-    cfg = ConfigParser.ConfigParser()
-    cfg.read(conffile)
-    try:
-        for o in cfg.options("activities"):
-            try:
-                value = cfg.get("activities", o)
-                if o.lower() == "default":
-                    if not default:
-                        default = int(value)
-                    value = default
-                output += "%s: %s\n" % (o, value)
-                options.append(int(value))
-            except Exception as e:
-                logger.error("Error parsing %s - %s: %s" % ("activities", o, e))
-    except Exception as e:
-        logger.error("Raised exception: %s" % e)
-    if not quiet:
-        print (output)
+    options, default = get_objects("enumerations/time_entry_activities",
+                                   "id", "name", quiet)
+    if not default:
+        if default_time_entry_activitiy in options:
+            default = default_time_entry_activitiy
+        else:
+            default = options[0]  # in case of
+            logger.warning("default_time_entry_activitiy (%s) is not a valid activity identifier: %s"
+                           % (default_time_entry_activitiy, options))
     return options, default
 
 
 def get_issue_status(quiet=False):
-    global conffile
-    output = ""
-    options = []
-    default = None
-    if not quiet:
-        print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m'''
-               % "issue status")
-    cfg = ConfigParser.ConfigParser()
-    cfg.read(conffile)
-    try:
-        for o in cfg.options("issue_status"):
-            try:
-                value = cfg.get("issue_status", o)
-                output += o + ": " + value + "\n"
-                options.append(int(value))
-                if o.lower() == "default":
-                    default = int(value)
-            except Exception as e:
-                logger.error("Error parsing %s - %s: %s" % ("activities", o, e))
-    except Exception as e:
-        logger.error("Raised exception: %s" % e)
-    if not quiet:
-        print (output)
-    return options, default
+    return get_objects("issue_statuses",
+                       "id", "name", quiet)
 
 
 def get_trackers():
-    global conffile
-    output = ""
-    options = []
-    default = None
-    print ('''\033[33;01mAvailable %s:\033[31;01m>\033[0;0m''' % "trackers")
-    cfg = ConfigParser.ConfigParser()
-    cfg.read(conffile)
-    try:
-        for o in cfg.options("trackers"):
-            try:
-                value = cfg.get("trackers", o)
-                output += o + ": " + value + "\n"
-                options.append(int(value))
-                if o.lower() == "default":
-                    default = int(value)
-            except Exception as e:
-                logger.error("Error parsing %s - %s: %s" % ("trackers", o, e))
-    except Exception as e:
-        logger.error("Raised exception: %s" % e)
-    print (output)
-    return options, default
+    return get_objects("trackers", "id", "name")
 
 
 def select_option(option_name, get_options, **kwargs):
@@ -730,7 +680,7 @@ def change_task_status(comment):
                 comment = get_input("comment",
                                     default="Task status updated")
             now = time.time()
-            _, activity_id = get_activities()
+            activity_id = select_option("activity", get_activities)
             issue_id = SESSION["CURRENT_TICKET"]["id"]
             hours = (now - SESSION["LAST_TIME"]) / 3600.0
             create_time_entry(issue_id, activity_id, hours, comment)
@@ -747,11 +697,10 @@ def change_task_status(comment):
 @update_prompt
 def create_task():
     global baseurl
-    global default_tracker_id
     global SESSION
     try:
         p_id = select_option("project", get_projects)
-        # t_id = select_option("tracker", get_trackers)
+        t_id = select_option("tracker", get_trackers)
         try:
             u_id = select_option("memberships", get_memberships, project_id=p_id)
         except CancelException:
@@ -773,7 +722,7 @@ def create_task():
                 "description": description,
                 "subject": subject,
                 "project_id": p_id,
-                "tracker_id": default_tracker_id,
+                "tracker_id": t_id,
                 "assigned_to_id": u_id,
             }
         }
