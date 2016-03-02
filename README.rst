@@ -44,7 +44,7 @@ For example::
   baseurl=https://redmine.myhost.domain
   sentinel=.
   default_time_entry_activitiy = 8
-  # See key in https://tracker.interoud.com/my/account
+  # See key in https://redmine.myhost.domain/my/account
   key=5174044140444ffee5dd17922228d882166666b5
   session_file=.redmine_cmd_.session
 
